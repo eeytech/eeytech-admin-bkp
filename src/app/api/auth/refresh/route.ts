@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     const accessToken = generateAccessToken({
       sub: decoded.sub,
       email: user.email, // <--- Adicionado para satisfazer a tipagem JWTPayload
-      application: "admin-platform", // Ou extrair dinamicamente se necessário
+      application: "eeytech-admin",
       modules: moduleMap,
     });
 

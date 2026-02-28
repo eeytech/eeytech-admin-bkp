@@ -17,7 +17,7 @@ export const createRoleAction = actionClient
   }))
   .action(async ({ parsedInput }) => {
     // Exige permissão de escrita em roles no painel administrativo
-    await requireModulePermission("roles", "WRITE", "admin-platform");
+    await requireModulePermission("roles", "WRITE", "eeytech-admin");
 
     const slug = parsedInput.name
       .toLowerCase()

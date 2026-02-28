@@ -29,7 +29,8 @@ export async function OPTIONS() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password, applicationSlug } = body;
+    const { email, password, applicationSlug, application_slug } = body;
+    const requestedApplicationSlug = applicationSlug ?? application_slug;
 
     // 1. Busca o usuário pelo e-mail
     const [user] = await db.select().from(users).where(eq(users.email, email));
@@ -51,14 +52,14 @@ export async function POST(request: Request) {
     }
 
     let modulesMap: Record<string, string[]> = {};
-    let targetAppSlug = applicationSlug || "eeytech-admin"; // Default para o próprio Admin
+    let targetAppSlug = requestedApplicationSlug || "eeytech-admin"; // Default para o próprio Admin
 
     // 3. BUSCA PERMISSÕES APENAS SE HOUVER UM SLUG VÁLIDO
-    if (applicationSlug) {
+    if (requestedApplicationSlug) {
       const [app] = await db
         .select()
         .from(applications)
-        .where(eq(applications.slug, applicationSlug));
+        .where(eq(applications.slug, requestedApplicationSlug));
 
       if (app) {
         const userPermissions = await db

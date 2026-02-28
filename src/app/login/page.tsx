@@ -31,7 +31,7 @@ import { Input } from "@/components/ui/input";
 const loginSchema = z.object({
   email: z.string().email("Insira um e-mail válido"),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
-  application_slug: z.string().min(1, "Slug da aplicação é obrigatório"),
+  applicationSlug: z.string().min(1, "Slug da aplicação é obrigatório"),
 });
 
 // Extração do tipo para garantir que o useForm use a definição exata
@@ -46,7 +46,7 @@ export default function LoginPage() {
     defaultValues: {
       email: "",
       password: "",
-      application_slug: "admin-platform", // Valor padrão definido aqui
+      applicationSlug: "eeytech-admin",
     },
   });
 

@@ -21,7 +21,7 @@ export const createUserAction = actionClient
   .schema(createUserSchema)
   .action(async ({ parsedInput: { email, password } }) => {
     // Exige permissão de escrita em usuários no Admin Central
-    await requireModulePermission("users", "WRITE", "admin-platform");
+    await requireModulePermission("users", "WRITE", "eeytech-admin");
 
     const passwordHash = await hashPassword(password);
 
@@ -49,7 +49,7 @@ export const updateUserPermissionsAction = actionClient
   .schema(updatePermissionsSchema)
   .action(async ({ parsedInput: { userId, applicationId, permissions } }) => {
     // Validar se o administrador tem permissão
-    await requireModulePermission("users", "WRITE", "admin-platform");
+    await requireModulePermission("users", "WRITE", "eeytech-admin");
 
     await db.transaction(async (tx) => {
       // Limpa as permissões antigas do usuário apenas para a aplicação selecionada
@@ -88,7 +88,7 @@ export const getUserPermissionsAction = actionClient
   }))
   .action(async ({ parsedInput: { userId, applicationId } }) => {
     // Validação de acesso (leitura)
-    await requireModulePermission("users", "READ", "admin-platform");
+    await requireModulePermission("users", "READ", "eeytech-admin");
 
     // Busca as permissões na tabela de junção filtrando por usuário e app
     const permissions = await db.query.userModulePermissions.findMany({
