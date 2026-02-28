@@ -2,8 +2,8 @@ import { cookies } from "next/headers";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import { redirect } from "next/navigation";
 
-// AJUSTE: Use seu e-mail para acesso total
-const SUPER_ADMIN_EMAIL = "seu-email@eeytech.com.br"; 
+const SUPER_ADMIN_EMAIL =
+  (process.env.SUPER_ADMIN_EMAIL ?? "admin@eeytech.com.br").toLowerCase();
 
 export async function getSessionPermissions() {
   const cookieStore = await cookies();
@@ -22,7 +22,7 @@ export async function requireModulePermission(
   if (!payload) redirect("/login");
 
   // Bypass de Super Admin
-  if (payload.email === SUPER_ADMIN_EMAIL) {
+  if (payload.email.toLowerCase() === SUPER_ADMIN_EMAIL) {
     return payload;
   }
 

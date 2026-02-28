@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { applications, users } from "./schema";
+import { applications, userModulePermissions, users } from "./schema";
 import { hashPassword } from "../auth/password";
 
 async function main() {
@@ -45,6 +45,25 @@ async function main() {
         },
       })
       .returning();
+
+    await db
+      .insert(userModulePermissions)
+      .values({
+        userId: adminUser.id,
+        applicationId: adminApp.id,
+        moduleSlug: "users",
+        actions: ["FULL"],
+      })
+      .onConflictDoUpdate({
+        target: [
+          userModulePermissions.userId,
+          userModulePermissions.applicationId,
+          userModulePermissions.moduleSlug,
+        ],
+        set: {
+          actions: ["FULL"],
+        },
+      });
 
     console.log(`Usuario mestre configurado: ${adminUser.email}`);
     console.log("Seed finalizado com sucesso!");

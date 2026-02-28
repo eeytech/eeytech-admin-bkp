@@ -6,6 +6,7 @@ import {
   roles,
   rolePermissions,
   applications,
+  userModulePermissions,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -54,33 +55,42 @@ export async function POST(request: Request) {
     let modulesMap: Record<string, string[]> = {};
     let targetAppSlug = requestedApplicationSlug || "eeytech-admin"; // Default para o próprio Admin
 
-    // 3. BUSCA PERMISSÕES APENAS SE HOUVER UM SLUG VÁLIDO
-    if (requestedApplicationSlug) {
-      const [app] = await db
-        .select()
-        .from(applications)
-        .where(eq(applications.slug, requestedApplicationSlug));
+    // 3. Busca permissões para a app alvo (roles + permissões diretas).
+    const [app] = await db
+      .select()
+      .from(applications)
+      .where(eq(applications.slug, targetAppSlug));
 
-      if (app) {
-        const userPermissions = await db
-          .select({
-            moduleSlug: rolePermissions.moduleSlug,
-            actions: rolePermissions.actions,
-          })
-          .from(userRoles)
-          .innerJoin(roles, eq(userRoles.roleId, roles.id))
-          .innerJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-          .where(
-            and(eq(userRoles.userId, user.id), eq(roles.applicationId, app.id)),
-          );
+    if (app) {
+      const roleBasedPermissions = await db
+        .select({
+          moduleSlug: rolePermissions.moduleSlug,
+          actions: rolePermissions.actions,
+        })
+        .from(userRoles)
+        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .innerJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+        .where(and(eq(userRoles.userId, user.id), eq(roles.applicationId, app.id)));
 
-        userPermissions.forEach((p) => {
-          if (!modulesMap[p.moduleSlug]) modulesMap[p.moduleSlug] = [];
-          modulesMap[p.moduleSlug] = Array.from(
-            new Set([...modulesMap[p.moduleSlug], ...(p.actions as string[])]),
-          );
-        });
-      }
+      const directPermissions = await db
+        .select({
+          moduleSlug: userModulePermissions.moduleSlug,
+          actions: userModulePermissions.actions,
+        })
+        .from(userModulePermissions)
+        .where(
+          and(
+            eq(userModulePermissions.userId, user.id),
+            eq(userModulePermissions.applicationId, app.id),
+          ),
+        );
+
+      [...roleBasedPermissions, ...directPermissions].forEach((p) => {
+        if (!modulesMap[p.moduleSlug]) modulesMap[p.moduleSlug] = [];
+        modulesMap[p.moduleSlug] = Array.from(
+          new Set([...modulesMap[p.moduleSlug], ...(p.actions as string[])]),
+        );
+      });
     }
 
     // 4. Gera o Token JWT
