@@ -51,7 +51,7 @@ export function RolePermissionsButton({
         });
         setSelectedPermissions(permissionsMap);
       },
-      onError: () => toast.error("Erro ao carregar permissões do papel"),
+      onError: () => toast.error("Erro ao carregar permissoes do perfil"),
     },
   );
 
@@ -59,11 +59,11 @@ export function RolePermissionsButton({
     updateRolePermissionsAction,
     {
       onSuccess: () => {
-        toast.success("Permissões do papel atualizadas com sucesso!");
+        toast.success("Permissoes do perfil atualizadas com sucesso");
         setOpen(false);
       },
       onError: ({ error }) =>
-        toast.error(error.serverError || "Erro ao salvar permissões"),
+        toast.error(error.serverError || "Erro ao salvar permissoes"),
     },
   );
 
@@ -103,15 +103,15 @@ export function RolePermissionsButton({
   return (
     <>
       <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
-        Gerenciar Permissões
+        Gerenciar Permissoes
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Gerenciar Permissões do Papel</DialogTitle>
+            <DialogTitle>Gerenciar Permissoes do Perfil</DialogTitle>
             <DialogDescription>
-              Defina os acessos deste papel por módulo da aplicação.
+              Defina os acessos deste perfil por modulo da aplicacao.
             </DialogDescription>
           </DialogHeader>
 
@@ -124,7 +124,7 @@ export function RolePermissionsButton({
 
             {!hasModules && !isLoading && (
               <p className="text-center text-sm text-muted-foreground">
-                Esta aplicação não possui módulos cadastrados.
+                Esta aplicacao nao possui modulos cadastrados.
               </p>
             )}
 
@@ -174,7 +174,7 @@ export function RolePermissionsButton({
               disabled={isLoading || isSaving || !hasModules}
             >
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar Permissões
+              Salvar Permissoes
             </Button>
           </div>
         </DialogContent>

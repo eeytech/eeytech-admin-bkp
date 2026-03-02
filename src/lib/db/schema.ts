@@ -27,15 +27,19 @@ export const applications = core.table("applications", {
   name: text("name").notNull(),
   slug: varchar("slug", { length: 50 }).unique().notNull(),
   apiKey: text("api_key").unique().notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // --- USUÁRIOS (ATUALIZADO COM COLUNA NAME) ---
 export const users = core.table("users", {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name"), // <--- ADICIONE ESTA LINHA
+  name: text("name").notNull(),
   email: text("email").unique().notNull(),
   passwordHash: text("password_hash").notNull(),
+  applicationId: uuid("application_id")
+    .references(() => applications.id, { onDelete: "cascade" })
+    .notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -120,8 +124,10 @@ export const tickets = core.table("tickets", {
   userId: uuid("user_id")
     .references(() => users.id)
     .notNull(),
+  title: text("title").notNull().default("Sem titulo"),
+  description: text("description").notNull().default(""),
   subject: text("subject").notNull(),
-  status: varchar("status", { length: 20 }).default("OPEN").notNull(),
+  status: varchar("status", { length: 20 }).default("aguardando").notNull(),
   priority: varchar("priority", { length: 20 }).default("MEDIUM").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -214,7 +220,11 @@ export const ticketMessagesRelations = relations(ticketMessages, ({ one }) => ({
   }),
 }));
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
+  application: one(applications, {
+    fields: [users.applicationId],
+    references: [applications.id],
+  }),
   tickets: many(tickets),
   messages: many(ticketMessages),
   permissions: many(userModulePermissions),
@@ -226,4 +236,5 @@ export const applicationsRelations = relations(applications, ({ many }) => ({
   modules: many(modules),
   userPermissions: many(userModulePermissions),
   roles: many(roles),
+  users: many(users),
 }));

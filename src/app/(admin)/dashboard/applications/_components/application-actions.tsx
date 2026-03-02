@@ -1,7 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Trash2, PlusCircle, Copy, Check, Settings, ExternalLink } from "lucide-react";
+import Link from "next/link";
+import {
+  MoreHorizontal,
+  Trash2,
+  PlusCircle,
+  Power,
+  List,
+  Loader2,
+  Settings,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,80 +21,156 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAction } from "next-safe-action/hooks";
-import { deleteApplicationAction } from "@/lib/actions/applications";
+import {
+  deleteApplicationAction,
+  toggleApplicationActiveAction,
+} from "@/lib/actions/applications";
 import { CreateModuleModal } from "./create-module-modal";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Application {
   id: string;
   name: string;
   slug: string;
-  apiKey: string;
+  isActive: boolean;
+  modules: { id: string; name: string; slug: string }[];
 }
 
 export function ApplicationActions({ app }: { app: Application }) {
-  const [copied, setCopied] = useState(false);
   const [showModuleModal, setShowModuleModal] = useState(false);
-  
-  const { execute: deleteApp, isPending: isDeleting } = useAction(deleteApplicationAction, {
-    onSuccess: () => toast.success("Aplicação excluída."),
-    onError: () => toast.error("Erro ao excluir aplicação.")
-  });
+  const [showModulesList, setShowModulesList] = useState(false);
 
-  const copyApiKey = () => {
-    navigator.clipboard.writeText(app.apiKey);
-    setCopied(true);
-    toast.success("API Key copiada para a área de transferência!");
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const { execute: deleteApp, isPending: isDeleting } = useAction(
+    deleteApplicationAction,
+    {
+      onSuccess: () => toast.success("Aplicacao excluida"),
+      onError: () => toast.error("Erro ao excluir aplicacao"),
+    },
+  );
+
+  const { execute: toggleActive, isPending: isToggling } = useAction(
+    toggleApplicationActiveAction,
+    {
+      onSuccess: () =>
+        toast.success(
+          app.isActive
+            ? "Aplicacao desativada com sucesso"
+            : "Aplicacao ativada com sucesso",
+        ),
+      onError: () => toast.error("Erro ao alterar status da aplicacao"),
+    },
+  );
 
   return (
     <>
-      <div className="flex justify-end gap-2">
-        <Button variant="ghost" size="icon" onClick={copyApiKey} className="h-8 w-8">
-          {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-muted-foreground" />}
-        </Button>
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal size={16} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Gerenciar SaaS</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            
-            <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => setShowModuleModal(true)}>
-              <PlusCircle size={14} /> Adicionar Módulo
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem className="gap-2 cursor-pointer" disabled>
-              <Settings size={14} /> Configurações
-            </DropdownMenuItem>
-            
-            <DropdownMenuSeparator />
-            
-            <DropdownMenuItem 
-              className="text-destructive gap-2 cursor-pointer"
-              disabled={isDeleting}
-              onClick={() => {
-                if (confirm(`Tem certeza que deseja excluir "${app.name}"? Esta ação é irreversível.`)) {
-                  deleteApp({ id: app.id });
-                }
-              }}
-            >
-              <Trash2 size={14} /> {isDeleting ? "Excluindo..." : "Excluir Aplicação"}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <MoreHorizontal size={16} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Gerenciar Aplicacao</DropdownMenuLabel>
+          <DropdownMenuSeparator />
 
-      <CreateModuleModal 
-        applicationId={app.id} 
-        open={showModuleModal} 
-        onOpenChange={setShowModuleModal} 
+          <DropdownMenuItem
+            className="cursor-pointer gap-2"
+            onClick={() => setShowModuleModal(true)}
+          >
+            <PlusCircle size={14} /> Adicionar Modulo
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="cursor-pointer gap-2"
+            onClick={() => setShowModulesList(true)}
+          >
+            <List size={14} /> Ver Modulos
+          </DropdownMenuItem>
+
+          <DropdownMenuItem asChild className="cursor-pointer gap-2">
+            <Link href={`/dashboard/applications/${app.id}/settings`}>
+              <Settings size={14} /> Configuracoes
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="cursor-pointer gap-2"
+            disabled={isToggling}
+            onClick={() =>
+              toggleActive({ id: app.id, isActive: !app.isActive })
+            }
+          >
+            {isToggling ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Power size={14} />
+            )}
+            {app.isActive ? "Desativar Aplicacao" : "Ativar Aplicacao"}
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem
+            className="cursor-pointer gap-2 text-destructive"
+            disabled={isDeleting}
+            onClick={() => {
+              if (
+                confirm(
+                  `Tem certeza que deseja excluir "${app.name}"? Esta acao e irreversivel.`,
+                )
+              ) {
+                deleteApp({ id: app.id });
+              }
+            }}
+          >
+            <Trash2 size={14} /> {isDeleting ? "Excluindo..." : "Excluir Aplicacao"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <CreateModuleModal
+        applicationId={app.id}
+        open={showModuleModal}
+        onOpenChange={setShowModuleModal}
       />
+
+      <Dialog open={showModulesList} onOpenChange={setShowModulesList}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modulos de {app.name}</DialogTitle>
+            <DialogDescription>
+              Lista de modulos cadastrados para esta aplicacao.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            {app.modules.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum modulo cadastrado.
+              </p>
+            ) : (
+              app.modules.map((module) => (
+                <div
+                  key={module.id}
+                  className="flex items-center justify-between rounded border p-2"
+                >
+                  <span>{module.name}</span>
+                  <code className="text-xs text-muted-foreground">
+                    {module.slug}
+                  </code>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

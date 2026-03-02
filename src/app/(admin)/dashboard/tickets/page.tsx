@@ -1,8 +1,14 @@
 export const dynamic = "force-dynamic";
 
+import { and, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
+import dayjs from "dayjs";
+import Link from "next/link";
 import { db } from "@/lib/db";
-import { tickets, applications } from "@/lib/db/schema";
+import { applications, tickets, users } from "@/lib/db/schema";
 import { PageShell } from "@/components/admin/page-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -11,69 +17,150 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { desc } from "drizzle-orm";
-import Link from "next/link";
-import dayjs from "dayjs"; // Conforme regra do projeto
-import { MessageSquare, Clock, Filter } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
-export default async function TicketsPage() {
-  // Busca chamados com relação com a aplicação para mostrar o nome do SaaS
-  const allTickets = await db.query.tickets.findMany({
-    orderBy: [desc(tickets.createdAt)],
-    with: {
-      application: true,
-    },
-  });
+const STATUS_OPTIONS = [
+  { value: "aguardando", label: "Aguardando" },
+  { value: "em_atendimento", label: "Em atendimento" },
+  { value: "concluido", label: "Concluido" },
+];
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "OPEN":
-        return <Badge variant="destructive">Aberto</Badge>;
-      case "IN_PROGRESS":
-        return (
-          <Badge className="bg-blue-500 hover:bg-blue-600">Em Progresso</Badge>
-        );
-      case "CLOSED":
-        return <Badge variant="secondary">Fechado</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
+function statusLabel(status: string) {
+  return STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status;
+}
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "HIGH":
-        return "text-red-600 font-bold";
-      case "MEDIUM":
-        return "text-amber-600";
-      default:
-        return "text-muted-foreground";
-    }
-  };
+function statusBadge(status: string) {
+  if (status === "aguardando") return <Badge variant="destructive">Aguardando</Badge>;
+  if (status === "em_atendimento") {
+    return <Badge className="bg-blue-500 hover:bg-blue-600">Em atendimento</Badge>;
+  }
+  if (status === "concluido") return <Badge variant="secondary">Concluido</Badge>;
+  return <Badge variant="outline">{status}</Badge>;
+}
+
+export default async function TicketsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    q?: string;
+    status?: string;
+    applicationId?: string;
+    userId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }>;
+}) {
+  const filters = await searchParams;
+  const q = (filters.q ?? "").trim();
+  const status = filters.status ?? "all";
+  const applicationId = filters.applicationId ?? "all";
+  const userId = filters.userId ?? "all";
+  const dateFrom = filters.dateFrom ?? "";
+  const dateTo = filters.dateTo ?? "";
+
+  const where = [];
+
+  if (status !== "all") where.push(eq(tickets.status, status));
+  if (applicationId !== "all") where.push(eq(tickets.applicationId, applicationId));
+  if (userId !== "all") where.push(eq(tickets.userId, userId));
+  if (dateFrom) where.push(gte(tickets.createdAt, new Date(dateFrom)));
+  if (dateTo) {
+    const endOfDay = new Date(dateTo);
+    endOfDay.setHours(23, 59, 59, 999);
+    where.push(lte(tickets.createdAt, endOfDay));
+  }
+  if (q) {
+    where.push(
+      or(
+        ilike(tickets.title, `%${q}%`),
+        sql`CAST(${tickets.id} AS TEXT) ILIKE ${`%${q}%`}`,
+      )!,
+    );
+  }
+
+  const [allTickets, allApps, allUsers] = await Promise.all([
+    db.query.tickets.findMany({
+      where: where.length > 0 ? and(...where) : undefined,
+      with: {
+        application: true,
+        user: true,
+      },
+      orderBy: [desc(tickets.createdAt)],
+    }),
+    db.query.applications.findMany({
+      orderBy: (table, { asc }) => [asc(table.name)],
+    }),
+    db.query.users.findMany({
+      orderBy: (table, { asc }) => [asc(table.name)],
+    }),
+  ]);
 
   return (
     <PageShell
-      title="Chamados de Suporte"
-      description="Visualize e responda solicitações de suporte de todas as aplicações."
-      action={
-        <Button variant="outline" size="sm" className="gap-2">
-          <Filter size={16} /> Filtrar
-        </Button>
-      }
+      title="Chamados"
+      description="Visualize, filtre e responda chamados dos SaaS."
     >
+      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-6">
+        <Input name="q" placeholder="Buscar por titulo ou ID" defaultValue={q} />
+        <select
+          name="status"
+          defaultValue={status}
+          className="rounded-md border bg-background p-2 text-sm"
+        >
+          <option value="all">Todos os status</option>
+          {STATUS_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <select
+          name="applicationId"
+          defaultValue={applicationId}
+          className="rounded-md border bg-background p-2 text-sm"
+        >
+          <option value="all">Todas as aplicacoes</option>
+          {allApps.map((app) => (
+            <option key={app.id} value={app.id}>
+              {app.name}
+            </option>
+          ))}
+        </select>
+        <select
+          name="userId"
+          defaultValue={userId}
+          className="rounded-md border bg-background p-2 text-sm"
+        >
+          <option value="all">Todos os usuarios</option>
+          {allUsers.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.name} ({user.email})
+            </option>
+          ))}
+        </select>
+        <Input name="dateFrom" type="date" defaultValue={dateFrom} />
+        <Input name="dateTo" type="date" defaultValue={dateTo} />
+        <div className="md:col-span-6 flex justify-end gap-2">
+          <Button type="submit" variant="outline">
+            Filtrar
+          </Button>
+          <Button asChild variant="ghost">
+            <a href="/dashboard/tickets">Limpar</a>
+          </Button>
+        </div>
+      </form>
+
       <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">ID</TableHead>
-              <TableHead>Aplicação</TableHead>
-              <TableHead>Assunto</TableHead>
-              <TableHead>Prioridade</TableHead>
+              <TableHead>ID</TableHead>
+              <TableHead>Titulo</TableHead>
+              <TableHead>Aplicacao</TableHead>
+              <TableHead>Usuario</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Criado em</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="text-right">Acoes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -90,33 +177,27 @@ export default async function TicketsPage() {
               allTickets.map((ticket) => (
                 <TableRow key={ticket.id}>
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    #{ticket.id.substring(0, 8)}
+                    #{ticket.id.slice(0, 8)}
                   </TableCell>
+                  <TableCell className="max-w-[280px] truncate">
+                    {ticket.title}
+                  </TableCell>
+                  <TableCell>{ticket.application.name}</TableCell>
                   <TableCell>
-                    <span className="font-medium text-sm">
-                      {/* Use o encadeamento opcional e um fallback */}
-                      {(ticket as any).application?.name || "Sem Aplicação"}
+                    {ticket.user.name}{" "}
+                    <span className="text-xs text-muted-foreground">
+                      ({ticket.user.email})
                     </span>
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate">
-                    {ticket.subject}
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`text-xs ${getPriorityColor(ticket.priority)}`}
-                    >
-                      {ticket.priority}
-                    </span>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(ticket.status)}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell>{statusBadge(ticket.status)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
                     {dayjs(ticket.createdAt).format("DD/MM/YYYY HH:mm")}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="ghost" size="sm" className="gap-2">
                       <Link href={`/dashboard/tickets/${ticket.id}`}>
                         <MessageSquare size={16} />
-                        Responder
+                        Visualizar
                       </Link>
                     </Button>
                   </TableCell>
@@ -125,6 +206,10 @@ export default async function TicketsPage() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="mt-3 text-xs text-muted-foreground">
+        Status disponiveis: {STATUS_OPTIONS.map((option) => statusLabel(option.value)).join(", ")}.
       </div>
     </PageShell>
   );

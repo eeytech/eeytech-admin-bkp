@@ -1,22 +1,28 @@
 import { db } from "@/lib/db";
-import { sessions, users, userModulePermissions } from "@/lib/db/schema";
+import {
+  applications,
+  rolePermissions,
+  roles,
+  sessions,
+  userRoles,
+  users,
+} from "@/lib/db/schema";
 import { generateAccessToken } from "@/lib/auth/jwt";
-import { eq, and, gt } from "drizzle-orm";
+import { getSystemSettings } from "@/lib/system-settings";
+import { and, eq, gt } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
 export async function POST(req: Request) {
   try {
+    const systemSettings = await getSystemSettings();
     const { refreshToken } = await req.json();
 
-    // 1. Validar JWT do refresh token
     const decoded = jwt.verify(
       refreshToken,
       process.env.JWT_REFRESH_SECRET!,
     ) as { sub: string };
 
-    // 2. Verificar no banco se o token existe e não expirou
-    // Aproveitamos para buscar os dados do usuário (e-mail) na mesma consulta
     const session = await db.query.sessions.findFirst({
       where: and(
         eq(sessions.token, refreshToken),
@@ -27,45 +33,85 @@ export async function POST(req: Request) {
 
     if (!session) {
       return NextResponse.json(
-        { error: "Sessão inválida ou expirada" },
+        { error: "Sessao invalida ou expirada" },
         { status: 401 },
       );
     }
 
-    // 3. Buscar o e-mail do usuário (necessário para o novo JWTPayload)
     const [user] = await db
       .select({
         id: users.id,
         email: users.email,
+        isActive: users.isActive,
+        applicationId: users.applicationId,
       })
       .from(users)
       .where(eq(users.id, decoded.sub));
 
     if (!user) {
+      return NextResponse.json({ error: "Usuario nao encontrado" }, { status: 401 });
+    }
+
+    if (!user.isActive) {
+      return NextResponse.json({ error: "Conta desativada" }, { status: 403 });
+    }
+
+    const [userApplication] = await db
+      .select({
+        id: applications.id,
+        slug: applications.slug,
+        isActive: applications.isActive,
+      })
+      .from(applications)
+      .where(eq(applications.id, user.applicationId));
+
+    if (!userApplication || !userApplication.isActive) {
       return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 401 },
+        { error: "Aplicacao do usuario inativa ou inexistente" },
+        { status: 403 },
       );
     }
 
-    // 4. Buscar permissões atuais para o novo Access Token
-    const permissions = await db.query.userModulePermissions.findMany({
-      where: eq(userModulePermissions.userId, decoded.sub),
-    });
+    const permissions = await db
+      .select({
+        moduleSlug: rolePermissions.moduleSlug,
+        actions: rolePermissions.actions,
+      })
+      .from(userRoles)
+      .innerJoin(roles, eq(userRoles.roleId, roles.id))
+      .innerJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+      .where(
+        and(
+          eq(userRoles.userId, decoded.sub),
+          eq(roles.applicationId, userApplication.id),
+        ),
+      );
 
     const moduleMap: Record<string, string[]> = {};
-    permissions.forEach((p) => (moduleMap[p.moduleSlug] = p.actions));
-
-    // 5. Gerar novo Access Token com o campo 'email' incluído
-    const accessToken = generateAccessToken({
-      sub: decoded.sub,
-      email: user.email, // <--- Adicionado para satisfazer a tipagem JWTPayload
-      application: "eeytech-admin",
-      modules: moduleMap,
+    permissions.forEach((permission) => {
+      if (!moduleMap[permission.moduleSlug]) {
+        moduleMap[permission.moduleSlug] = [];
+      }
+      moduleMap[permission.moduleSlug] = Array.from(
+        new Set([
+          ...moduleMap[permission.moduleSlug],
+          ...(permission.actions as string[]),
+        ]),
+      );
     });
 
+    const accessToken = generateAccessToken(
+      {
+        sub: decoded.sub,
+        email: user.email,
+        application: userApplication.slug,
+        modules: moduleMap,
+      },
+      systemSettings.sessionTimeoutMinutes * 60,
+    );
+
     return NextResponse.json({ accessToken });
-  } catch (error) {
-    return NextResponse.json({ error: "Token inválido" }, { status: 401 });
+  } catch {
+    return NextResponse.json({ error: "Token invalido" }, { status: 401 });
   }
 }

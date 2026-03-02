@@ -6,11 +6,11 @@ import {
   roles,
   rolePermissions,
   applications,
-  userModulePermissions,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { getSystemSettings } from "@/lib/system-settings";
 
 const JWT_SECRET = process.env.JWT_SECRET || "12345";
 const COOKIE_DOMAIN = ".eeytech.com";
@@ -29,6 +29,9 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
   try {
+    const systemSettings = await getSystemSettings();
+    const sessionTimeoutSeconds = systemSettings.sessionTimeoutMinutes * 60;
+
     const body = await request.json();
     const { email, password, applicationSlug, application_slug } = body;
     const requestedApplicationSlug = applicationSlug ?? application_slug;
@@ -39,6 +42,8 @@ export async function POST(request: Request) {
         id: users.id,
         email: users.email,
         passwordHash: users.passwordHash,
+        name: users.name,
+        applicationId: users.applicationId,
         isActive: users.isActive,
         createdAt: users.createdAt,
       })
@@ -61,52 +66,68 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!user.isActive) {
+      return NextResponse.json(
+        { error: "Conta desativada" },
+        { status: 403 },
+      );
+    }
+
+    const [userApplication] = await db
+      .select({
+        id: applications.id,
+        slug: applications.slug,
+        isActive: applications.isActive,
+      })
+      .from(applications)
+      .where(eq(applications.id, user.applicationId));
+
+    if (!userApplication || !userApplication.isActive) {
+      return NextResponse.json(
+        { error: "Aplicacao do usuario inativa ou inexistente" },
+        { status: 403 },
+      );
+    }
+
+    if (
+      requestedApplicationSlug &&
+      requestedApplicationSlug !== userApplication.slug
+    ) {
+      return NextResponse.json(
+        { error: "Usuario nao possui acesso a aplicacao solicitada" },
+        { status: 403 },
+      );
+    }
+
     let modulesMap: Record<string, string[]> = {};
-    let targetAppSlug = requestedApplicationSlug || "eeytech-admin";
+    const targetAppSlug = userApplication.slug;
 
     // 3. Busca permissões para a aplicação alvo
-    const [app] = await db
-      .select()
-      .from(applications)
-      .where(eq(applications.slug, targetAppSlug));
+    const roleBasedPermissions = await db
+      .select({
+        moduleSlug: rolePermissions.moduleSlug,
+        actions: rolePermissions.actions,
+      })
+      .from(userRoles)
+      .innerJoin(roles, eq(userRoles.roleId, roles.id))
+      .innerJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+      .where(
+        and(
+          eq(userRoles.userId, user.id),
+          eq(roles.applicationId, userApplication.id),
+        ),
+      );
 
-    if (app) {
-      const roleBasedPermissions = await db
-        .select({
-          moduleSlug: rolePermissions.moduleSlug,
-          actions: rolePermissions.actions,
-        })
-        .from(userRoles)
-        .innerJoin(roles, eq(userRoles.roleId, roles.id))
-        .innerJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-        .where(
-          and(eq(userRoles.userId, user.id), eq(roles.applicationId, app.id)),
-        );
-
-      const directPermissions = await db
-        .select({
-          moduleSlug: userModulePermissions.moduleSlug,
-          actions: userModulePermissions.actions,
-        })
-        .from(userModulePermissions)
-        .where(
-          and(
-            eq(userModulePermissions.userId, user.id),
-            eq(userModulePermissions.applicationId, app.id),
-          ),
-        );
-
-      [...roleBasedPermissions, ...directPermissions].forEach((p) => {
-        if (!modulesMap[p.moduleSlug]) modulesMap[p.moduleSlug] = [];
-        modulesMap[p.moduleSlug] = Array.from(
-          new Set([...modulesMap[p.moduleSlug], ...(p.actions as string[])]),
-        );
-      });
-    }
+    roleBasedPermissions.forEach((p) => {
+      if (!modulesMap[p.moduleSlug]) modulesMap[p.moduleSlug] = [];
+      modulesMap[p.moduleSlug] = Array.from(
+        new Set([...modulesMap[p.moduleSlug], ...(p.actions as string[])]),
+      );
+    });
 
     // 4. Gera o Token JWT incluindo o campo 'name' com fallback
     // O fallback (email.split) evita erros caso o nome esteja nulo no banco
-    const fallbackName = user.email.split("@")[0];
+    const fallbackName = user.name || user.email.split("@")[0];
 
     const accessToken = jwt.sign(
       {
@@ -117,7 +138,7 @@ export async function POST(request: Request) {
         modules: modulesMap,
       },
       JWT_SECRET,
-      { expiresIn: "1h" },
+      { expiresIn: sessionTimeoutSeconds },
     );
 
     const response = NextResponse.json({
@@ -126,6 +147,11 @@ export async function POST(request: Request) {
         id: user.id,
         email: user.email,
         name: fallbackName,
+      },
+      system: {
+        instanceName: systemSettings.instanceName,
+        apiUrl: systemSettings.apiUrl,
+        sessionTimeoutMinutes: systemSettings.sessionTimeoutMinutes,
       },
     });
 
@@ -136,7 +162,7 @@ export async function POST(request: Request) {
       sameSite: "lax",
       domain: COOKIE_DOMAIN,
       path: "/",
-      maxAge: 60 * 60,
+      maxAge: sessionTimeoutSeconds,
     });
 
     const origin = request.headers.get("origin");

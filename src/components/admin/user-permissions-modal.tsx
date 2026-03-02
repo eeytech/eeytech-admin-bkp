@@ -1,144 +1,122 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react"; // Adicionado useEffect
-import { Checkbox } from "@/components/ui/checkbox";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useAction } from "next-safe-action/hooks";
-import { updateUserPermissionsAction, getUserPermissionsAction } from "@/lib/actions/users"; // Importada nova ação
-import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useAction } from "next-safe-action/hooks";
+import { getUserProfilesAction, updateUserProfilesAction } from "@/lib/actions/users";
+import { toast } from "sonner";
 
-const ACTIONS = ["READ", "WRITE", "DELETE", "FULL"];
+type Role = {
+  id: string;
+  name: string;
+  slug: string;
+};
 
 export function UserPermissionsModal({
   userId,
-  applications,
+  applicationName,
+  roles,
   open,
   onOpenChange,
 }: {
   userId: string;
-  applications: any[];
+  applicationName: string;
+  roles: Role[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [selectedAppId, setSelectedAppId] = useState<string>(applications[0]?.id || "");
-  const [selectedPermissions, setSelectedPermissions] = useState<Record<string, string[]>>({});
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
 
-  // Hook para buscar permissões existentes
-  const { execute: fetchPermissions, isPending: isLoading } = useAction(getUserPermissionsAction, {
-    onSuccess: ({ data }) => {
-      const permsMap: Record<string, string[]> = {};
-      data?.forEach(p => {
-        permsMap[p.moduleSlug] = p.actions;
-      });
-      setSelectedPermissions(permsMap);
+  const { execute: fetchProfiles, isPending: isLoading } = useAction(
+    getUserProfilesAction,
+    {
+      onSuccess: ({ data }) => setSelectedRoleIds(data ?? []),
+      onError: () => toast.error("Erro ao carregar perfis do usuario"),
     },
-    onError: () => toast.error("Erro ao carregar permissões atuais")
-  });
+  );
 
-  // Carrega os dados sempre que o modal abre ou troca de App
+  const { execute: saveProfiles, isPending: isSaving } = useAction(
+    updateUserProfilesAction,
+    {
+      onSuccess: () => {
+        toast.success("Perfis atualizados com sucesso");
+        onOpenChange(false);
+      },
+      onError: ({ error }) =>
+        toast.error(error.serverError || "Erro ao atualizar perfis"),
+    },
+  );
+
   useEffect(() => {
-    if (open && selectedAppId) {
-      fetchPermissions({ userId, applicationId: selectedAppId });
+    if (open) {
+      fetchProfiles({ userId });
     }
-  }, [open, selectedAppId, userId, fetchPermissions]);
+  }, [open, userId, fetchProfiles]);
 
-  const currentApp = useMemo(() => 
-    applications.find(app => app.id === selectedAppId), 
-  [selectedAppId, applications]);
-
-  const { execute: savePermissions, isPending: isSaving } = useAction(updateUserPermissionsAction, {
-    onSuccess: () => {
-      toast.success("Permissões atualizadas com sucesso!");
-      onOpenChange(false);
-    },
-  });
-
-  const togglePermission = (moduleSlug: string, action: string) => {
-    setSelectedPermissions((prev) => {
-      const current = prev[moduleSlug] || [];
-      const newActions = current.includes(action)
-        ? current.filter((a) => a !== action)
-        : [...current, action];
-      return { ...prev, [moduleSlug]: newActions };
-    });
+  const toggleRole = (roleId: string) => {
+    setSelectedRoleIds((previous) =>
+      previous.includes(roleId)
+        ? previous.filter((id) => id !== roleId)
+        : [...previous, roleId],
+    );
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Gerenciar Permissões</DialogTitle>
-          <DialogDescription>Selecione o SaaS e defina os acessos do usuário.</DialogDescription>
+          <DialogTitle>Editar Perfis</DialogTitle>
+          <DialogDescription>
+            Selecione os perfis para a aplicacao {applicationName}.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Aplicação (SaaS)</Label>
-            <select 
-              className="w-full p-2 rounded-md border bg-background"
-              value={selectedAppId}
-              onChange={(e) => {
-                setSelectedAppId(e.target.value);
-                setSelectedPermissions({}); // Limpa enquanto carrega o novo
-              }}
-            >
-              {applications.map(app => (
-                <option key={app.id} value={app.id}>{app.name}</option>
-              ))}
-            </select>
-          </div>
+        <div className="relative min-h-[180px] space-y-4 border-t pt-4">
+          {isLoading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
+              <Loader2 className="animate-spin text-primary" />
+            </div>
+          )}
 
-          <div className="border-t pt-4 space-y-6 min-h-[200px] relative">
-            {isLoading && (
-              <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
-                <Loader2 className="animate-spin text-primary" />
+          {roles.length === 0 && !isLoading && (
+            <p className="text-sm text-muted-foreground">
+              Nenhum perfil cadastrado para esta aplicacao.
+            </p>
+          )}
+
+          {roles.map((role) => (
+            <div key={role.id} className="flex items-center gap-3 rounded border p-3">
+              <Checkbox
+                id={`${userId}-${role.id}`}
+                checked={selectedRoleIds.includes(role.id)}
+                onCheckedChange={() => toggleRole(role.id)}
+              />
+              <div className="flex flex-col">
+                <Label htmlFor={`${userId}-${role.id}`} className="cursor-pointer">
+                  {role.name}
+                </Label>
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  {role.slug}
+                </span>
               </div>
-            )}
-            
-            {currentApp?.modules.length === 0 && !isLoading && (
-              <p className="text-sm text-muted-foreground text-center">Nenhum módulo cadastrado.</p>
-            )}
-            
-            {currentApp?.modules.map((module: any) => (
-              <div key={module.slug} className="grid grid-cols-4 items-center gap-4 border-b pb-4">
-                <div className="col-span-1">
-                  <p className="font-semibold text-sm">{module.name}</p>
-                  <code className="text-[10px] text-muted-foreground uppercase">{module.slug}</code>
-                </div>
-                <div className="col-span-3 flex flex-wrap gap-4">
-                  {ACTIONS.map((action) => (
-                    <div key={action} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`${module.slug}-${action}`} 
-                        checked={(selectedPermissions[module.slug] || []).includes(action)}
-                        onCheckedChange={() => togglePermission(module.slug, action)}
-                      />
-                      <Label htmlFor={`${module.slug}-${action}`} className="text-xs cursor-pointer">{action}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
 
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button 
-            onClick={() => {
-              const permissionsArray = Object.entries(selectedPermissions).map(([slug, actions]) => ({
-                moduleSlug: slug,
-                actions
-              }));
-              savePermissions({ userId, applicationId: selectedAppId, permissions: permissionsArray });
-            }} 
-            disabled={isSaving || isLoading || !selectedAppId}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            disabled={isLoading || isSaving}
+            onClick={() => saveProfiles({ userId, roleIds: selectedRoleIds })}
           >
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar Permissões
+            Salvar Perfis
           </Button>
         </div>
       </DialogContent>

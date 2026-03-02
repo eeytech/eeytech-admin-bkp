@@ -14,25 +14,25 @@ import {
 
 const menuItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Aplicações", href: "/dashboard/applications", icon: Globe },
-  { name: "Usuários", href: "/dashboard/users", icon: Users },
+  { name: "Aplicacoes", href: "/dashboard/applications", icon: Globe },
+  { name: "Usuarios", href: "/dashboard/users", icon: Users },
   { name: "Chamados", href: "/dashboard/tickets", icon: Ticket },
-  { name: "Permissões", href: "/dashboard/roles", icon: ShieldCheck },
-  { name: "Configurações", href: "/dashboard/settings", icon: Settings },
+  { name: "Perfis", href: "/dashboard/roles", icon: ShieldCheck },
+  { name: "Configuracoes", href: "/dashboard/settings", icon: Settings },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 border-r bg-card flex flex-col h-screen sticky top-0">
+    <aside className="sticky top-0 flex h-screen w-64 flex-col border-r bg-card">
       <div className="p-6">
         <h1 className="text-xl font-bold tracking-tight text-primary">
           Admin Eeytech
         </h1>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="flex-1 space-y-1 px-4">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -40,10 +40,10 @@ export function AdminSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
+                "flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
                 isActive
                   ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent hover:text-accent-foreground text-muted-foreground",
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
               )}
             >
               <item.icon size={18} />
@@ -53,9 +53,9 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t">
+      <div className="border-t p-4">
         <div className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground">
-          <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center font-bold">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent font-bold">
             E
           </div>
           <div className="flex flex-col">

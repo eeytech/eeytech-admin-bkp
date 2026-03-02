@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import type { SignOptions } from "jsonwebtoken";
 
 const ACCESS_SECRET = process.env.JWT_SECRET!;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
@@ -10,9 +11,11 @@ export interface JWTPayload {
   modules: Record<string, string[]>; // MBAC: { "pacientes": ["FULL"] }
 }
 
-export function generateAccessToken(payload: JWTPayload) {
-  // Access Token curto para segurança em sistemas distribuídos
-  return jwt.sign(payload, ACCESS_SECRET, { expiresIn: "15m" });
+export function generateAccessToken(
+  payload: JWTPayload,
+  expiresIn: SignOptions["expiresIn"] = "15m",
+) {
+  return jwt.sign(payload, ACCESS_SECRET, { expiresIn });
 }
 
 export function generateRefreshToken(userId: string) {

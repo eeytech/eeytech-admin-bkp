@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 
-// Altere o nome de "middleware" para "proxy"
+const MASTER_EMAIL =
+  (process.env.SUPER_ADMIN_EMAIL ?? "admin@eeytech.com.br").toLowerCase();
+const ADMIN_APPLICATION_SLUG = "eeytech-admin";
+
 export function proxy(request: NextRequest) {
   const token = request.cookies.get("auth_token")?.value;
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
+  const isUnauthorizedPage = request.nextUrl.pathname.startsWith("/unauthorized");
+  const isDashboardPage = request.nextUrl.pathname.startsWith("/dashboard");
 
   if (!token) {
-    if (isLoginPage) return NextResponse.next();
+    if (isLoginPage || isUnauthorizedPage) return NextResponse.next();
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -20,7 +25,18 @@ export function proxy(request: NextRequest) {
     return response;
   }
 
+  const isMaster = payload.email.toLowerCase() === MASTER_EMAIL;
+  const canAccessAdmin = isMaster || payload.application === ADMIN_APPLICATION_SLUG;
+
+  if (isDashboardPage && !canAccessAdmin) {
+    return NextResponse.redirect(new URL("/unauthorized", request.url));
+  }
+
   if (isLoginPage) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  if (isUnauthorizedPage && canAccessAdmin) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

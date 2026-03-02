@@ -7,7 +7,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { UserPlus, Loader2 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,31 +29,44 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 const createUserSchema = z.object({
-  email: z.string().email("E-mail inválido"),
-  password: z.string().min(8, "Senha deve ter no mínimo 8 caracteres"),
+  name: z.string().min(2, "Nome deve ter no minimo 2 caracteres"),
+  email: z.string().email("E-mail invalido"),
+  password: z.string().min(8, "Senha deve ter no minimo 8 caracteres"),
+  applicationId: z.string().uuid("Selecione uma aplicacao"),
 });
 
 type CreateUserValues = z.infer<typeof createUserSchema>;
 
-export function CreateUserModal() {
+type ApplicationOption = {
+  id: string;
+  name: string;
+};
+
+export function CreateUserModal({
+  applications,
+}: {
+  applications: ApplicationOption[];
+}) {
   const [open, setOpen] = useState(false);
 
   const form = useForm<CreateUserValues>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
+      applicationId: applications[0]?.id ?? "",
     },
   });
 
   const { execute, isPending } = useAction(createUserAction, {
     onSuccess: () => {
-      toast.success("Usuário criado com sucesso!");
+      toast.success("Usuario criado com sucesso");
       setOpen(false);
       form.reset();
     },
     onError: ({ error }) => {
-      toast.error(error.serverError || "Erro ao criar usuário");
+      toast.error(error.serverError || "Erro ao criar usuario");
     },
   });
 
@@ -66,14 +78,14 @@ export function CreateUserModal() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" className="gap-2">
-          <UserPlus size={16} /> Novo Usuário
+          <UserPlus size={16} /> Novo Usuario
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Criar Novo Usuário</DialogTitle>
+          <DialogTitle>Criar Novo Usuario</DialogTitle>
           <DialogDescription>
-            Adicione um novo usuário ao sistema. As permissões podem ser editadas após a criação.
+            O usuario deve ser criado ja vinculado a uma aplicacao.
           </DialogDescription>
         </DialogHeader>
 
@@ -81,17 +93,55 @@ export function CreateUserModal() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="email"
+              name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>E-mail</FormLabel>
+                  <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="usuario@eeytech.com" {...field} />
+                    <Input placeholder="Nome do usuario" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>E-mail</FormLabel>
+                  <FormControl>
+                    <Input placeholder="usuario@empresa.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="applicationId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Aplicacao</FormLabel>
+                  <FormControl>
+                    <select
+                      {...field}
+                      className="w-full rounded-md border bg-background p-2 text-sm"
+                    >
+                      {applications.map((application) => (
+                        <option key={application.id} value={application.id}>
+                          {application.name}
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="password"
@@ -105,10 +155,11 @@ export function CreateUserModal() {
                 </FormItem>
               )}
             />
+
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Criar Usuário
+                Criar Usuario
               </Button>
             </DialogFooter>
           </form>

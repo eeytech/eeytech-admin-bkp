@@ -16,7 +16,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 const settingsSchema = z.object({
   name: z.string().min(3),
   url: z.string().url(),
-  sessionTimeout: z.string(),
+  sessionTimeout: z
+    .string()
+    .trim()
+    .min(1, "Obrigatório")
+    .refine((value) => /^\d+$/.test(value), "Use apenas números inteiros")
+    .refine((value) => {
+      const numericValue = Number(value);
+      return numericValue >= 1 && numericValue <= 1440;
+    }, "Informe um valor entre 1 e 1440"),
 });
 
 type SettingsValues = z.infer<typeof settingsSchema>;
@@ -93,7 +101,15 @@ export function SettingsForm({ initialData }: { initialData: SettingsValues }) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tempo de Expiração (minutos)</FormLabel>
-                      <FormControl><Input type="number" {...field} /></FormControl>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={1440}
+                          step={1}
+                          {...field}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

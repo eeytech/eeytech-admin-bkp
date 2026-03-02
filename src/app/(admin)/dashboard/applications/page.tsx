@@ -1,9 +1,15 @@
 export const dynamic = "force-dynamic";
 
+import { desc } from "drizzle-orm";
+import dayjs from "dayjs";
 import { db } from "@/lib/db";
 import { applications } from "@/lib/db/schema";
 import { PageShell } from "@/components/admin/page-shell";
 import { CreateAppModal } from "@/components/admin/create-app-modal";
+import { ApplicationActions } from "./_components/application-actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -12,46 +18,82 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { desc } from "drizzle-orm";
-import dayjs from "dayjs"; // Conforme regra do general.mdc
-import { ApplicationActions } from "./_components/application-actions";
 
-export default async function ApplicationsPage() {
-  // Busca as aplicações diretamente no servidor
+export default async function ApplicationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
+  const filters = await searchParams;
+  const q = (filters.q ?? "").trim().toLowerCase();
+  const status = filters.status ?? "all";
+
   const allApplications = await db.query.applications.findMany({
+    with: { modules: true },
     orderBy: [desc(applications.createdAt)],
+  });
+
+  const filteredApplications = allApplications.filter((app) => {
+    const matchName = !q || app.name.toLowerCase().includes(q);
+    const matchStatus =
+      status === "all" ||
+      (status === "active" && app.isActive) ||
+      (status === "inactive" && !app.isActive);
+
+    return matchName && matchStatus;
   });
 
   return (
     <PageShell
-      title="Aplicações"
-      description="Gerencie as instâncias de SaaS conectadas ao ecossistema Eeytech."
+      title="Aplicacoes"
+      description="Gerencie aplicacoes, modulos e disponibilidade."
       action={<CreateAppModal />}
     >
+      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-4">
+        <Input name="q" placeholder="Buscar por nome" defaultValue={q} />
+        <select
+          name="status"
+          defaultValue={status}
+          className="rounded-md border bg-background p-2 text-sm"
+        >
+          <option value="all">Todos os status</option>
+          <option value="active">Ativas</option>
+          <option value="inactive">Desativadas</option>
+        </select>
+        <div className="md:col-span-2 flex justify-end gap-2">
+          <Button type="submit" variant="outline">
+            Filtrar
+          </Button>
+          <Button asChild variant="ghost">
+            <a href="/dashboard/applications">Limpar</a>
+          </Button>
+        </div>
+      </form>
+
       <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Slug</TableHead>
-              <TableHead>API Key</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Modulos</TableHead>
               <TableHead>Criado em</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="text-right">Acoes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {allApplications.length === 0 ? (
+            {filteredApplications.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  Nenhuma aplicação cadastrada.
+                  Nenhuma aplicacao encontrada.
                 </TableCell>
               </TableRow>
             ) : (
-              allApplications.map((app) => (
+              filteredApplications.map((app) => (
                 <TableRow key={app.id}>
                   <TableCell className="font-medium">{app.name}</TableCell>
                   <TableCell>
@@ -60,16 +102,28 @@ export default async function ApplicationsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <code className="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
-                      {app.apiKey.substring(0, 8)}...
-                    </code>
+                    <Badge variant={app.isActive ? "default" : "secondary"}>
+                      {app.isActive ? "Ativa" : "Inativa"}
+                    </Badge>
                   </TableCell>
+                  <TableCell>{app.modules.length}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {dayjs(app.createdAt).format("DD/MM/YYYY")}
                   </TableCell>
                   <TableCell className="text-right">
-                    {/* Componente que contém o dropdown de opções e o botão de copiar */}
-                    <ApplicationActions app={app} />
+                    <ApplicationActions
+                      app={{
+                        id: app.id,
+                        name: app.name,
+                        slug: app.slug,
+                        isActive: app.isActive,
+                        modules: app.modules.map((module) => ({
+                          id: module.id,
+                          name: module.name,
+                          slug: module.slug,
+                        })),
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))

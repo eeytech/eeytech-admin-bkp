@@ -2,6 +2,10 @@ export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/admin/page-shell";
+import { CreateRoleModal } from "@/components/admin/create-role-modal";
+import { RolePermissionsButton } from "./_components/role-permissions-button";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -10,51 +14,90 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CreateRoleModal } from "@/components/admin/create-role-modal";
-import { RolePermissionsButton } from "./_components/role-permissions-button";
 
-export default async function RolesPage() {
+export default async function RolesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; applicationId?: string }>;
+}) {
+  const filters = await searchParams;
+  const q = (filters.q ?? "").trim().toLowerCase();
+  const applicationId = filters.applicationId ?? "all";
+
   const allRoles = await db.query.roles.findMany({
     with: {
       application: {
-        with: {
-          modules: true,
-        },
+        with: { modules: true },
       },
       permissions: true,
     },
   });
+  const allApps = await db.query.applications.findMany({
+    orderBy: (table, { asc }) => [asc(table.name)],
+  });
 
-  const allApps = await db.query.applications.findMany();
+  const filteredRoles = allRoles.filter((role) => {
+    const matchName =
+      !q ||
+      role.name.toLowerCase().includes(q) ||
+      role.slug.toLowerCase().includes(q);
+    const matchApplication =
+      applicationId === "all" || role.applicationId === applicationId;
+    return matchName && matchApplication;
+  });
 
   return (
     <PageShell
-      title="Permissoes e Papeis"
-      description="Gerencie perfis de acesso (Roles) reutilizaveis para seus usuarios."
+      title="Perfis"
+      description="Gerencie perfis por aplicacao e permissoes por modulo."
       action={<CreateRoleModal applications={allApps} />}
     >
+      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-4">
+        <Input name="q" placeholder="Buscar por nome" defaultValue={q} />
+        <select
+          name="applicationId"
+          defaultValue={applicationId}
+          className="rounded-md border bg-background p-2 text-sm"
+        >
+          <option value="all">Todas as aplicacoes</option>
+          {allApps.map((app) => (
+            <option key={app.id} value={app.id}>
+              {app.name}
+            </option>
+          ))}
+        </select>
+        <div className="md:col-span-2 flex justify-end gap-2">
+          <Button type="submit" variant="outline">
+            Filtrar
+          </Button>
+          <Button asChild variant="ghost">
+            <a href="/dashboard/roles">Limpar</a>
+          </Button>
+        </div>
+      </form>
+
       <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome do Papel</TableHead>
+              <TableHead>Perfil</TableHead>
               <TableHead>Aplicacao</TableHead>
               <TableHead>Modulos</TableHead>
               <TableHead className="text-right">Acoes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {allRoles.length === 0 ? (
+            {filteredRoles.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={4}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  Nenhum papel configurado.
+                  Nenhum perfil encontrado.
                 </TableCell>
               </TableRow>
             ) : (
-              allRoles.map((role) => (
+              filteredRoles.map((role) => (
                 <TableRow key={role.id}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
@@ -65,7 +108,7 @@ export default async function RolesPage() {
                     </div>
                   </TableCell>
                   <TableCell>{role.application.name}</TableCell>
-                  <TableCell>{role.permissions.length} modulos</TableCell>
+                  <TableCell>{role.permissions.length}</TableCell>
                   <TableCell className="text-right">
                     <RolePermissionsButton
                       roleId={role.id}
