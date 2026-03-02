@@ -21,9 +21,15 @@ import { UserActions } from "./_components/user-actions";
 
 export default async function UsersPage() {
   // 1. Busca usuários
-  const allUsers = await db.query.users.findMany({
-    orderBy: [desc(users.createdAt)],
-  });
+  const allUsers = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      isActive: users.isActive,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt));
 
   // 2. Busca todas as aplicações e seus módulos para o gerenciamento de permissões
   const allApplications = await db.query.applications.findMany({

@@ -33,9 +33,13 @@ export async function POST(req: Request) {
     }
 
     // 3. Buscar o e-mail do usuário (necessário para o novo JWTPayload)
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, decoded.sub),
-    });
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+      })
+      .from(users)
+      .where(eq(users.id, decoded.sub));
 
     if (!user) {
       return NextResponse.json(
