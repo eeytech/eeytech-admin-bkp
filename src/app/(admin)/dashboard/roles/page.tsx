@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
-import { roles, applications } from "@/lib/db/schema";
 import { PageShell } from "@/components/admin/page-shell";
 import {
   Table,
@@ -11,14 +10,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button"; // Importação adicionada para corrigir o erro
 import { CreateRoleModal } from "@/components/admin/create-role-modal";
+import { RolePermissionsButton } from "./_components/role-permissions-button";
 
 export default async function RolesPage() {
-  // Busca papéis com relações
   const allRoles = await db.query.roles.findMany({
     with: {
-      application: true,
+      application: {
+        with: {
+          modules: true,
+        },
+      },
       permissions: true,
     },
   });
@@ -27,8 +29,8 @@ export default async function RolesPage() {
 
   return (
     <PageShell
-      title="Permissões e Papéis"
-      description="Gerencie perfis de acesso (Roles) reutilizáveis para seus usuários."
+      title="Permissoes e Papeis"
+      description="Gerencie perfis de acesso (Roles) reutilizaveis para seus usuarios."
       action={<CreateRoleModal applications={allApps} />}
     >
       <div className="rounded-md border bg-card">
@@ -36,9 +38,9 @@ export default async function RolesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nome do Papel</TableHead>
-              <TableHead>Aplicação</TableHead>
-              <TableHead>Módulos</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead>Aplicacao</TableHead>
+              <TableHead>Modulos</TableHead>
+              <TableHead className="text-right">Acoes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,17 +59,18 @@ export default async function RolesPage() {
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
                       <span>{role.name}</span>
-                      <span className="text-[10px] text-muted-foreground uppercase font-mono">
+                      <span className="font-mono text-[10px] uppercase text-muted-foreground">
                         {role.slug}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>{role.application.name}</TableCell>
-                  <TableCell>{role.permissions.length} módulos</TableCell>
+                  <TableCell>{role.permissions.length} modulos</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      Gerenciar Permissões
-                    </Button>
+                    <RolePermissionsButton
+                      roleId={role.id}
+                      modules={role.application.modules}
+                    />
                   </TableCell>
                 </TableRow>
               ))

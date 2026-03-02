@@ -3,9 +3,10 @@
 import { createSafeActionClient } from "next-safe-action";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { roles } from "@/lib/db/schema";
+import { rolePermissions, roles } from "@/lib/db/schema";
 import { requireModulePermission } from "@/lib/permissions/mbac";
 import { revalidatePath } from "next/cache";
+import { eq } from "drizzle-orm";
 
 const actionClient = createSafeActionClient();
 
@@ -35,4 +36,51 @@ export const createRoleAction = actionClient
 
     revalidatePath("/dashboard/roles");
     return { success: true };
+  });
+
+const rolePermissionsSchema = z.object({
+  roleId: z.string().uuid(),
+  permissions: z.array(
+    z.object({
+      moduleSlug: z.string(),
+      actions: z.array(z.string()),
+    }),
+  ),
+});
+
+export const updateRolePermissionsAction = actionClient
+  .schema(rolePermissionsSchema)
+  .action(async ({ parsedInput: { roleId, permissions } }) => {
+    await requireModulePermission("roles", "WRITE", "eeytech-admin");
+
+    await db.transaction(async (tx) => {
+      await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
+
+      const permissionsToInsert = permissions
+        .filter((permission) => permission.actions.length > 0)
+        .map((permission) => ({
+          roleId,
+          moduleSlug: permission.moduleSlug,
+          actions: permission.actions,
+        }));
+
+      if (permissionsToInsert.length > 0) {
+        await tx.insert(rolePermissions).values(permissionsToInsert);
+      }
+    });
+
+    revalidatePath("/dashboard/roles");
+    return { success: true };
+  });
+
+export const getRolePermissionsAction = actionClient
+  .schema(z.object({ roleId: z.string().uuid() }))
+  .action(async ({ parsedInput: { roleId } }) => {
+    await requireModulePermission("roles", "READ", "eeytech-admin");
+
+    const permissions = await db.query.rolePermissions.findMany({
+      where: eq(rolePermissions.roleId, roleId),
+    });
+
+    return permissions;
   });
