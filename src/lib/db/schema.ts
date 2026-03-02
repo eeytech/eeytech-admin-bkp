@@ -1,3 +1,4 @@
+// src/lib/db/schema.ts - COMPLETO E CORRIGIDO
 import {
   pgSchema,
   uuid,
@@ -29,16 +30,17 @@ export const applications = core.table("applications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// --- USUÁRIOS ---
+// --- USUÁRIOS (ATUALIZADO COM COLUNA NAME) ---
 export const users = core.table("users", {
   id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name"), // <--- ADICIONE ESTA LINHA
   email: text("email").unique().notNull(),
   passwordHash: text("password_hash").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// --- MÓDULOS (Funcionalidades por App) ---
+// --- RESTO DO ARQUIVO (MANTÉM IGUAL) ---
 export const modules = core.table("modules", {
   id: uuid("id").primaryKey().defaultRandom(),
   applicationId: uuid("application_id")
@@ -48,7 +50,6 @@ export const modules = core.table("modules", {
   slug: varchar("slug", { length: 50 }).notNull(),
 });
 
-// --- PERMISSÕES INDIVIDUAIS (MBAC Legado/Direto) ---
 export const userModulePermissions = core.table(
   "user_module_permissions",
   {
@@ -66,7 +67,6 @@ export const userModulePermissions = core.table(
   }),
 );
 
-// --- PAPÉIS (ROLES) ---
 export const roles = core.table("roles", {
   id: uuid("id").primaryKey().defaultRandom(),
   applicationId: uuid("application_id")
@@ -78,7 +78,6 @@ export const roles = core.table("roles", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// --- PERMISSÕES DO PAPEL ---
 export const rolePermissions = core.table("role_permissions", {
   id: uuid("id").primaryKey().defaultRandom(),
   roleId: uuid("role_id")
@@ -88,19 +87,21 @@ export const rolePermissions = core.table("role_permissions", {
   actions: text("actions").array().notNull(),
 });
 
-// --- VÍNCULO USUÁRIO-PAPEL ---
-export const userRoles = core.table("user_roles", {
-  userId: uuid("user_id")
-    .references(() => users.id, { onDelete: "cascade" })
-    .notNull(),
-  roleId: uuid("role_id")
-    .references(() => roles.id, { onDelete: "cascade" })
-    .notNull(),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.userId, t.roleId] }),
-}));
+export const userRoles = core.table(
+  "user_roles",
+  {
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    roleId: uuid("role_id")
+      .references(() => roles.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userId, t.roleId] }),
+  }),
+);
 
-// --- SESSÕES (Refresh Tokens) ---
 export const sessions = core.table("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
@@ -111,7 +112,6 @@ export const sessions = core.table("sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// --- SISTEMA DE CHAMADOS (TICKETS) ---
 export const tickets = core.table("tickets", {
   id: uuid("id").primaryKey().defaultRandom(),
   applicationId: uuid("application_id")
@@ -127,7 +127,6 @@ export const tickets = core.table("tickets", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// --- MENSAGENS DOS CHAMADOS ---
 export const ticketMessages = core.table("ticket_messages", {
   id: uuid("id").primaryKey().defaultRandom(),
   ticketId: uuid("ticket_id")
@@ -140,8 +139,7 @@ export const ticketMessages = core.table("ticket_messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// --- RELAÇÕES ---
-
+// RELAÇÕES
 export const modulesRelations = relations(modules, ({ one }) => ({
   application: one(applications, {
     fields: [modules.applicationId],
@@ -149,16 +147,19 @@ export const modulesRelations = relations(modules, ({ one }) => ({
   }),
 }));
 
-export const userModulePermissionsRelations = relations(userModulePermissions, ({ one }) => ({
-  user: one(users, {
-    fields: [userModulePermissions.userId],
-    references: [users.id],
+export const userModulePermissionsRelations = relations(
+  userModulePermissions,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [userModulePermissions.userId],
+      references: [users.id],
+    }),
+    application: one(applications, {
+      fields: [userModulePermissions.applicationId],
+      references: [applications.id],
+    }),
   }),
-  application: one(applications, {
-    fields: [userModulePermissions.applicationId],
-    references: [applications.id],
-  }),
-}));
+);
 
 export const rolesRelations = relations(roles, ({ one, many }) => ({
   application: one(applications, {
@@ -169,12 +170,15 @@ export const rolesRelations = relations(roles, ({ one, many }) => ({
   users: many(userRoles),
 }));
 
-export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => ({
-  role: one(roles, {
-    fields: [rolePermissions.roleId],
-    references: [roles.id],
+export const rolePermissionsRelations = relations(
+  rolePermissions,
+  ({ one }) => ({
+    role: one(roles, {
+      fields: [rolePermissions.roleId],
+      references: [roles.id],
+    }),
   }),
-}));
+);
 
 export const userRolesRelations = relations(userRoles, ({ one }) => ({
   user: one(users, {

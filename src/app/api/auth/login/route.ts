@@ -19,7 +19,7 @@ export async function OPTIONS() {
   return new Response(null, {
     status: 204,
     headers: {
-      "Access-Control-Allow-Origin": "*", // Em produção, ideal listar os domínios permitidos
+      "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Access-Control-Allow-Credentials": "true",
@@ -53,9 +53,9 @@ export async function POST(request: Request) {
     }
 
     let modulesMap: Record<string, string[]> = {};
-    let targetAppSlug = requestedApplicationSlug || "eeytech-admin"; // Default para o próprio Admin
+    let targetAppSlug = requestedApplicationSlug || "eeytech-admin";
 
-    // 3. Busca permissões para a app alvo (roles + permissões diretas).
+    // 3. Busca permissões para a aplicação alvo
     const [app] = await db
       .select()
       .from(applications)
@@ -70,7 +70,9 @@ export async function POST(request: Request) {
         .from(userRoles)
         .innerJoin(roles, eq(userRoles.roleId, roles.id))
         .innerJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-        .where(and(eq(userRoles.userId, user.id), eq(roles.applicationId, app.id)));
+        .where(
+          and(eq(userRoles.userId, user.id), eq(roles.applicationId, app.id)),
+        );
 
       const directPermissions = await db
         .select({
@@ -93,34 +95,39 @@ export async function POST(request: Request) {
       });
     }
 
-    // 4. Gera o Token JWT
+    // 4. Gera o Token JWT incluindo o campo 'name' com fallback
+    // O fallback (email.split) evita erros caso o nome esteja nulo no banco
     const accessToken = jwt.sign(
       {
         sub: user.id,
         email: user.email,
+        name: user.name || user.email.split("@")[0],
         application: targetAppSlug,
         modules: modulesMap,
       },
       JWT_SECRET,
-      { expiresIn: "1h" }, // Tempo maior para o Admin
+      { expiresIn: "1h" },
     );
 
     const response = NextResponse.json({
       success: true,
-      user: { id: user.id, email: user.email },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name || user.email.split("@")[0],
+      },
     });
 
-    // 5. Configura o Cookie (Centralizado no domínio pai)
+    // 5. Configura o Cookie centralizado
     response.cookies.set("auth_token", accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
       domain: COOKIE_DOMAIN,
       path: "/",
-      maxAge: 60 * 60, // 1 hora
+      maxAge: 60 * 60,
     });
 
-    // Adiciona cabeçalhos de CORS dinâmicos baseados na origem da requisição
     const origin = request.headers.get("origin");
     if (origin) {
       response.headers.set("Access-Control-Allow-Origin", origin);
