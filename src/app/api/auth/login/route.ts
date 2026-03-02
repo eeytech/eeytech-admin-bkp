@@ -34,7 +34,16 @@ export async function POST(request: Request) {
     const requestedApplicationSlug = applicationSlug ?? application_slug;
 
     // 1. Busca o usuário pelo e-mail
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        passwordHash: users.passwordHash,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.email, email));
 
     if (!user || !user.passwordHash) {
       return NextResponse.json(
@@ -97,11 +106,13 @@ export async function POST(request: Request) {
 
     // 4. Gera o Token JWT incluindo o campo 'name' com fallback
     // O fallback (email.split) evita erros caso o nome esteja nulo no banco
+    const fallbackName = user.email.split("@")[0];
+
     const accessToken = jwt.sign(
       {
         sub: user.id,
         email: user.email,
-        name: user.name || user.email.split("@")[0],
+        name: fallbackName,
         application: targetAppSlug,
         modules: modulesMap,
       },
@@ -114,7 +125,7 @@ export async function POST(request: Request) {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name || user.email.split("@")[0],
+        name: fallbackName,
       },
     });
 
