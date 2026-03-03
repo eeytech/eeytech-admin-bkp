@@ -1,10 +1,17 @@
-"use server";
+﻿"use server";
 
 import { createSafeActionClient } from "next-safe-action";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { applications, roles, userRoles, users } from "@/lib/db/schema";
+import {
+  applications,
+  roles,
+  userCompanies,
+  userRoles,
+  users,
+} from "@/lib/db/schema";
 import { hashPassword } from "@/lib/auth/password";
+import { validateCompaniesBelongToApplication } from "@/lib/auth/company-context";
 import { requireModulePermission } from "@/lib/permissions/mbac";
 import { revalidatePath } from "next/cache";
 import { and, eq, inArray } from "drizzle-orm";
@@ -16,16 +23,19 @@ const createUserSchema = z.object({
   email: z.string().email("E-mail invalido"),
   password: z.string().min(8, "Senha deve ter no minimo 8 caracteres"),
   applicationId: z.string().uuid("Aplicacao invalida"),
+  roleIds: z.array(z.string().uuid()).min(1, "Selecione ao menos um perfil"),
+  companyIds: z.array(z.string().uuid()).default([]),
+  isApplicationAdmin: z.boolean().default(false),
 });
 
 export const createUserAction = actionClient
   .schema(createUserSchema)
-  .action(async ({ parsedInput: { name, email, password, applicationId } }) => {
+  .action(async ({ parsedInput }) => {
     await requireModulePermission("users", "WRITE", "eeytech-admin");
 
     const app = await db.query.applications.findFirst({
       where: and(
-        eq(applications.id, applicationId),
+        eq(applications.id, parsedInput.applicationId),
         eq(applications.isActive, true),
       ),
     });
@@ -34,14 +44,60 @@ export const createUserAction = actionClient
       throw new Error("Aplicacao nao encontrada ou inativa");
     }
 
-    const passwordHash = await hashPassword(password);
+    const validRoles = await db.query.roles.findMany({
+      where: and(
+        inArray(roles.id, parsedInput.roleIds),
+        eq(roles.applicationId, parsedInput.applicationId),
+      ),
+    });
 
-    await db.insert(users).values({
-      name,
-      email,
-      passwordHash,
-      applicationId,
-      isActive: true,
+    if (validRoles.length !== parsedInput.roleIds.length) {
+      throw new Error("Perfis invalidos para a aplicacao selecionada");
+    }
+
+    if (!parsedInput.isApplicationAdmin && parsedInput.companyIds.length === 0) {
+      throw new Error("Selecione ao menos uma empresa");
+    }
+
+    const validCompanies = await validateCompaniesBelongToApplication(
+      parsedInput.applicationId,
+      parsedInput.companyIds,
+    );
+
+    if (!parsedInput.isApplicationAdmin && validCompanies.length !== parsedInput.companyIds.length) {
+      throw new Error("Empresas invalidas para a aplicacao selecionada");
+    }
+
+    const passwordHash = await hashPassword(parsedInput.password);
+
+    await db.transaction(async (tx) => {
+      const [newUser] = await tx
+        .insert(users)
+        .values({
+          name: parsedInput.name,
+          email: parsedInput.email,
+          passwordHash,
+          applicationId: parsedInput.applicationId,
+          isApplicationAdmin: parsedInput.isApplicationAdmin,
+          isActive: true,
+        })
+        .returning({ id: users.id });
+
+      await tx.insert(userRoles).values(
+        parsedInput.roleIds.map((roleId) => ({
+          userId: newUser.id,
+          roleId,
+        })),
+      );
+
+      if (!parsedInput.isApplicationAdmin && parsedInput.companyIds.length > 0) {
+        await tx.insert(userCompanies).values(
+          parsedInput.companyIds.map((companyId) => ({
+            userId: newUser.id,
+            companyId,
+          })),
+        );
+      }
     });
 
     revalidatePath("/dashboard/users");
@@ -53,6 +109,9 @@ const updateUserSchema = z.object({
   name: z.string().min(2, "Nome deve ter ao menos 2 caracteres"),
   email: z.string().email("E-mail invalido"),
   applicationId: z.string().uuid("Aplicacao invalida"),
+  roleIds: z.array(z.string().uuid()).min(1, "Selecione ao menos um perfil"),
+  companyIds: z.array(z.string().uuid()).default([]),
+  isApplicationAdmin: z.boolean().default(false),
 });
 
 export const updateUserAction = actionClient
@@ -61,11 +120,14 @@ export const updateUserAction = actionClient
     await requireModulePermission("users", "WRITE", "eeytech-admin");
 
     const targetApp = await db.query.applications.findFirst({
-      where: eq(applications.id, parsedInput.applicationId),
+      where: and(
+        eq(applications.id, parsedInput.applicationId),
+        eq(applications.isActive, true),
+      ),
     });
 
     if (!targetApp) {
-      throw new Error("Aplicacao nao encontrada");
+      throw new Error("Aplicacao nao encontrada ou inativa");
     }
 
     const currentUser = await db.query.users.findFirst({
@@ -76,18 +138,63 @@ export const updateUserAction = actionClient
       throw new Error("Usuario nao encontrado");
     }
 
-    await db
-      .update(users)
-      .set({
-        name: parsedInput.name,
-        email: parsedInput.email,
-        applicationId: parsedInput.applicationId,
-      })
-      .where(eq(users.id, parsedInput.userId));
+    const validRoles = await db.query.roles.findMany({
+      where: and(
+        inArray(roles.id, parsedInput.roleIds),
+        eq(roles.applicationId, parsedInput.applicationId),
+      ),
+    });
 
-    if (currentUser.applicationId !== parsedInput.applicationId) {
-      await db.delete(userRoles).where(eq(userRoles.userId, parsedInput.userId));
+    if (validRoles.length !== parsedInput.roleIds.length) {
+      throw new Error("Perfis invalidos para a aplicacao selecionada");
     }
+
+    if (!parsedInput.isApplicationAdmin && parsedInput.companyIds.length === 0) {
+      throw new Error("Selecione ao menos uma empresa");
+    }
+
+    const validCompanies = await validateCompaniesBelongToApplication(
+      parsedInput.applicationId,
+      parsedInput.companyIds,
+    );
+
+    if (!parsedInput.isApplicationAdmin && validCompanies.length !== parsedInput.companyIds.length) {
+      throw new Error("Empresas invalidas para a aplicacao selecionada");
+    }
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({
+          name: parsedInput.name,
+          email: parsedInput.email,
+          applicationId: parsedInput.applicationId,
+          isApplicationAdmin: parsedInput.isApplicationAdmin,
+        })
+        .where(eq(users.id, parsedInput.userId));
+
+      await tx.delete(userRoles).where(eq(userRoles.userId, parsedInput.userId));
+      await tx.insert(userRoles).values(
+        parsedInput.roleIds.map((roleId) => ({
+          userId: parsedInput.userId,
+          roleId,
+        })),
+      );
+
+      await tx
+        .delete(userCompanies)
+        .where(eq(userCompanies.userId, parsedInput.userId));
+
+      if (!parsedInput.isApplicationAdmin && parsedInput.companyIds.length > 0) {
+        await tx.insert(userCompanies).values(
+          parsedInput.companyIds.map((companyId) => ({
+            userId: parsedInput.userId,
+            companyId,
+          })),
+        );
+      }
+
+    });
 
     revalidatePath("/dashboard/users");
     return { success: true };
@@ -179,3 +286,16 @@ export const getUserProfilesAction = actionClient
 
     return assignments.map((assignment) => assignment.roleId);
   });
+
+export const getUserCompaniesAction = actionClient
+  .schema(z.object({ userId: z.string().uuid() }))
+  .action(async ({ parsedInput: { userId } }) => {
+    await requireModulePermission("users", "READ", "eeytech-admin");
+
+    const assignments = await db.query.userCompanies.findMany({
+      where: eq(userCompanies.userId, userId),
+    });
+
+    return assignments.map((assignment) => assignment.companyId);
+  });
+

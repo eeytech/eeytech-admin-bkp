@@ -1,5 +1,4 @@
-// src/lib/db/schema.ts - COMPLETO E CORRIGIDO
-import {
+﻿import {
   pgSchema,
   uuid,
   text,
@@ -12,7 +11,6 @@ import { relations } from "drizzle-orm";
 
 export const core = pgSchema("core");
 
-// --- CONFIGURAÇÕES DO SISTEMA (SINGLETON) ---
 export const systemSettings = core.table("system_settings", {
   id: uuid("id").primaryKey().defaultRandom(),
   instanceName: text("instance_name").notNull().default("Admin Eeytech"),
@@ -21,7 +19,6 @@ export const systemSettings = core.table("system_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// --- APLICAÇÕES (SaaS) ---
 export const applications = core.table("applications", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -31,7 +28,18 @@ export const applications = core.table("applications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// --- USUÁRIOS (ATUALIZADO COM COLUNA NAME) ---
+export const companies = core.table("companies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  cnpj: varchar("cnpj", { length: 18 }),
+  status: varchar("status", { length: 20 }).default("active").notNull(),
+  applicationId: uuid("application_id")
+    .references(() => applications.id, { onDelete: "cascade" })
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const users = core.table("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -40,11 +48,11 @@ export const users = core.table("users", {
   applicationId: uuid("application_id")
     .references(() => applications.id, { onDelete: "cascade" })
     .notNull(),
+  isApplicationAdmin: boolean("is_application_admin").default(false).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// --- RESTO DO ARQUIVO (MANTÉM IGUAL) ---
 export const modules = core.table("modules", {
   id: uuid("id").primaryKey().defaultRandom(),
   applicationId: uuid("application_id")
@@ -106,6 +114,22 @@ export const userRoles = core.table(
   }),
 );
 
+export const userCompanies = core.table(
+  "user_companies",
+  {
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    companyId: uuid("company_id")
+      .references(() => companies.id, { onDelete: "cascade" })
+      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userId, t.companyId] }),
+  }),
+);
+
 export const sessions = core.table("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
@@ -120,6 +144,9 @@ export const tickets = core.table("tickets", {
   id: uuid("id").primaryKey().defaultRandom(),
   applicationId: uuid("application_id")
     .references(() => applications.id, { onDelete: "cascade" })
+    .notNull(),
+  companyId: uuid("company_id")
+    .references(() => companies.id, { onDelete: "cascade" })
     .notNull(),
   userId: uuid("user_id")
     .references(() => users.id)
@@ -145,7 +172,6 @@ export const ticketMessages = core.table("ticket_messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// RELAÇÕES
 export const modulesRelations = relations(modules, ({ one }) => ({
   application: one(applications, {
     fields: [modules.applicationId],
@@ -197,10 +223,25 @@ export const userRolesRelations = relations(userRoles, ({ one }) => ({
   }),
 }));
 
+export const userCompaniesRelations = relations(userCompanies, ({ one }) => ({
+  user: one(users, {
+    fields: [userCompanies.userId],
+    references: [users.id],
+  }),
+  company: one(companies, {
+    fields: [userCompanies.companyId],
+    references: [companies.id],
+  }),
+}));
+
 export const ticketsRelations = relations(tickets, ({ one, many }) => ({
   application: one(applications, {
     fields: [tickets.applicationId],
     references: [applications.id],
+  }),
+  company: one(companies, {
+    fields: [tickets.companyId],
+    references: [companies.id],
   }),
   user: one(users, {
     fields: [tickets.userId],
@@ -229,6 +270,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   messages: many(ticketMessages),
   permissions: many(userModulePermissions),
   roles: many(userRoles),
+  companies: many(userCompanies),
 }));
 
 export const applicationsRelations = relations(applications, ({ many }) => ({
@@ -237,4 +279,15 @@ export const applicationsRelations = relations(applications, ({ many }) => ({
   userPermissions: many(userModulePermissions),
   roles: many(roles),
   users: many(users),
+  companies: many(companies),
 }));
+
+export const companiesRelations = relations(companies, ({ one, many }) => ({
+  application: one(applications, {
+    fields: [companies.applicationId],
+    references: [applications.id],
+  }),
+  users: many(userCompanies),
+  tickets: many(tickets),
+}));
+

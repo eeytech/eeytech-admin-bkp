@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+﻿import { db } from "@/lib/db";
 import {
   applications,
   rolePermissions,
@@ -7,11 +7,12 @@ import {
   userRoles,
   users,
 } from "@/lib/db/schema";
-import { generateAccessToken } from "@/lib/auth/jwt";
+import { generateAccessToken, verifyAccessToken } from "@/lib/auth/jwt";
 import { getSystemSettings } from "@/lib/system-settings";
 import { and, eq, gt } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import { resolveUserCompanyContext } from "@/lib/auth/company-context";
 
 export async function POST(req: Request) {
   try {
@@ -42,8 +43,10 @@ export async function POST(req: Request) {
       .select({
         id: users.id,
         email: users.email,
+        name: users.name,
         isActive: users.isActive,
         applicationId: users.applicationId,
+        isApplicationAdmin: users.isApplicationAdmin,
       })
       .from(users)
       .where(eq(users.id, decoded.sub));
@@ -100,12 +103,35 @@ export async function POST(req: Request) {
       );
     });
 
+    let requestedCompanyId: string | undefined;
+
+    const accessTokenFromRequest = req.headers.get("authorization")?.replace("Bearer ", "");
+    if (accessTokenFromRequest) {
+      const accessPayload = verifyAccessToken(accessTokenFromRequest);
+      requestedCompanyId = accessPayload?.activeCompanyId;
+    }
+
+    const companyContext = await resolveUserCompanyContext(
+      {
+        id: user.id,
+        applicationId: user.applicationId,
+        isApplicationAdmin: user.isApplicationAdmin,
+      },
+      requestedCompanyId,
+    );
+
     const accessToken = generateAccessToken(
       {
         sub: decoded.sub,
         email: user.email,
+        name: user.name,
         application: userApplication.slug,
+        applicationId: userApplication.id,
         modules: moduleMap,
+        isApplicationAdmin: user.isApplicationAdmin,
+        companyIds: companyContext.companyIds,
+        companies: companyContext.companies,
+        activeCompanyId: companyContext.activeCompanyId,
       },
       systemSettings.sessionTimeoutMinutes * 60,
     );
@@ -115,3 +141,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Token invalido" }, { status: 401 });
   }
 }
+

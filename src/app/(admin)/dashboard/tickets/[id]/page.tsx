@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+﻿import { and, asc, eq } from "drizzle-orm";
 import dayjs from "dayjs";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -7,6 +7,7 @@ import { PageShell } from "@/components/admin/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TicketInteractions } from "./_components/ticket-interactions";
+import { requireCompanyContext } from "@/lib/permissions/mbac";
 
 function getStatusBadge(status: string) {
   if (status === "aguardando") return <Badge variant="destructive">Aguardando</Badge>;
@@ -22,12 +23,18 @@ export default async function TicketDetailsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const context = await requireCompanyContext();
   const { id } = await params;
 
   const ticket = await db.query.tickets.findFirst({
-    where: eq(tickets.id, id),
+    where: and(
+      eq(tickets.id, id),
+      eq(tickets.applicationId, context.applicationId),
+      eq(tickets.companyId, context.companyId),
+    ),
     with: {
       application: true,
+      company: true,
       user: true,
     },
   });
@@ -70,7 +77,7 @@ export default async function TicketDetailsPage({
                 messages.map((message) => (
                   <div key={message.id} className="rounded-md border p-3">
                     <div className="mb-1 text-xs text-muted-foreground">
-                      {message.user.name} ({message.user.email}) •{" "}
+                      {message.user.name} ({message.user.email}) -{" "}
                       {dayjs(message.createdAt).format("DD/MM/YYYY HH:mm")}
                     </div>
                     <p className="text-sm">{message.content}</p>
@@ -90,6 +97,10 @@ export default async function TicketDetailsPage({
               <div>
                 <span className="text-muted-foreground">Aplicacao: </span>
                 <span>{ticket.application.name}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Empresa: </span>
+                <span>{ticket.company.name}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">Usuario: </span>
@@ -119,3 +130,5 @@ export default async function TicketDetailsPage({
     </PageShell>
   );
 }
+
+

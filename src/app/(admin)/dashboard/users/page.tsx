@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 
 import { desc } from "drizzle-orm";
 import dayjs from "dayjs";
@@ -31,13 +31,23 @@ export default async function UsersPage({
   const filterStatus = filters.status ?? "all";
 
   const allUsers = await db.query.users.findMany({
-    with: { application: true },
+    with: {
+      application: true,
+      companies: {
+        with: { company: true },
+      },
+    },
     orderBy: [desc(users.createdAt)],
   });
   const allApplications = await db.query.applications.findMany({
-    orderBy: (table, { asc }) => [asc(table.name)],
-  });
-  const allRoles = await db.query.roles.findMany({
+    with: {
+      companies: {
+        orderBy: (table, { asc }) => [asc(table.name)],
+      },
+      roles: {
+        orderBy: (table, { asc }) => [asc(table.name)],
+      },
+    },
     orderBy: (table, { asc }) => [asc(table.name)],
   });
 
@@ -63,8 +73,25 @@ export default async function UsersPage({
   return (
     <PageShell
       title="Gestao de Usuarios"
-      description="Usuarios pertencem a uma unica aplicacao e acessam por perfis."
-      action={<CreateUserModal applications={activeApplications} />}
+      description="Usuarios pertencem a uma aplicacao, usam perfis e possuem escopo por empresas."
+      action={
+        <CreateUserModal
+          applications={activeApplications.map((application) => ({
+            id: application.id,
+            name: application.name,
+            companies: application.companies.map((company) => ({
+              id: company.id,
+              name: company.name,
+              status: company.status,
+            })),
+            roles: application.roles.map((role) => ({
+              id: role.id,
+              name: role.name,
+              slug: role.slug,
+            })),
+          }))}
+        />
+      }
     >
       <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-5">
         <Input name="q" placeholder="Buscar por nome ou email" defaultValue={q} />
@@ -106,6 +133,7 @@ export default async function UsersPage({
               <TableHead>Nome</TableHead>
               <TableHead>E-mail</TableHead>
               <TableHead>Aplicacao</TableHead>
+              <TableHead>Empresas</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Criado em</TableHead>
               <TableHead className="text-right">Acoes</TableHead>
@@ -115,7 +143,7 @@ export default async function UsersPage({
             {filteredUsers.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Nenhum usuario encontrado.
@@ -128,6 +156,15 @@ export default async function UsersPage({
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{user.application.name}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {user.isApplicationAdmin ? (
+                      <Badge>Administrador Global</Badge>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        {user.companies.length} empresa(s)
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {user.isActive ? (
@@ -155,16 +192,23 @@ export default async function UsersPage({
                         isActive: user.isActive,
                         applicationId: user.applicationId,
                         applicationName: user.application.name,
+                        isApplicationAdmin: user.isApplicationAdmin,
+                        companyIds: user.companies.map((entry) => entry.companyId),
                       }}
                       applications={allApplications.map((application) => ({
                         id: application.id,
                         name: application.name,
-                      }))}
-                      roles={allRoles.map((role) => ({
-                        id: role.id,
-                        name: role.name,
-                        slug: role.slug,
-                        applicationId: role.applicationId,
+                        companies: application.companies.map((company) => ({
+                          id: company.id,
+                          name: company.name,
+                          status: company.status,
+                        })),
+                        roles: application.roles.map((role) => ({
+                          id: role.id,
+                          name: role.name,
+                          slug: role.slug,
+                          applicationId: role.applicationId,
+                        })),
                       }))}
                     />
                   </TableCell>
@@ -177,3 +221,4 @@ export default async function UsersPage({
     </PageShell>
   );
 }
+

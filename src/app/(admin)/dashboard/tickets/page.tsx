@@ -1,10 +1,10 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 
 import { and, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { applications, tickets, users } from "@/lib/db/schema";
+import { companies, tickets, users } from "@/lib/db/schema";
 import { PageShell } from "@/components/admin/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MessageSquare } from "lucide-react";
+import { requireCompanyContext } from "@/lib/permissions/mbac";
 
 const STATUS_OPTIONS = [
   { value: "aguardando", label: "Aguardando" },
@@ -44,24 +45,26 @@ export default async function TicketsPage({
   searchParams: Promise<{
     q?: string;
     status?: string;
-    applicationId?: string;
     userId?: string;
     dateFrom?: string;
     dateTo?: string;
   }>;
 }) {
+  const context = await requireCompanyContext();
+
   const filters = await searchParams;
   const q = (filters.q ?? "").trim();
   const status = filters.status ?? "all";
-  const applicationId = filters.applicationId ?? "all";
   const userId = filters.userId ?? "all";
   const dateFrom = filters.dateFrom ?? "";
   const dateTo = filters.dateTo ?? "";
 
-  const where = [];
+  const where = [
+    eq(tickets.applicationId, context.applicationId),
+    eq(tickets.companyId, context.companyId),
+  ];
 
   if (status !== "all") where.push(eq(tickets.status, status));
-  if (applicationId !== "all") where.push(eq(tickets.applicationId, applicationId));
   if (userId !== "all") where.push(eq(tickets.userId, userId));
   if (dateFrom) where.push(gte(tickets.createdAt, new Date(dateFrom)));
   if (dateTo) {
@@ -78,27 +81,32 @@ export default async function TicketsPage({
     );
   }
 
-  const [allTickets, allApps, allUsers] = await Promise.all([
+  const [allTickets, allUsers, activeCompany] = await Promise.all([
     db.query.tickets.findMany({
-      where: where.length > 0 ? and(...where) : undefined,
+      where: and(...where),
       with: {
         application: true,
+        company: true,
         user: true,
       },
       orderBy: [desc(tickets.createdAt)],
     }),
-    db.query.applications.findMany({
+    db.query.users.findMany({
+      where: eq(users.applicationId, context.applicationId),
       orderBy: (table, { asc }) => [asc(table.name)],
     }),
-    db.query.users.findMany({
-      orderBy: (table, { asc }) => [asc(table.name)],
+    db.query.companies.findFirst({
+      where: and(
+        eq(companies.id, context.companyId),
+        eq(companies.applicationId, context.applicationId),
+      ),
     }),
   ]);
 
   return (
     <PageShell
       title="Chamados"
-      description="Visualize, filtre e responda chamados dos SaaS."
+      description={`Visualize, filtre e responda chamados da empresa ativa: ${activeCompany?.name ?? "-"}.`}
     >
       <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-6">
         <Input name="q" placeholder="Buscar por titulo ou ID" defaultValue={q} />
@@ -111,18 +119,6 @@ export default async function TicketsPage({
           {STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
-            </option>
-          ))}
-        </select>
-        <select
-          name="applicationId"
-          defaultValue={applicationId}
-          className="rounded-md border bg-background p-2 text-sm"
-        >
-          <option value="all">Todas as aplicacoes</option>
-          {allApps.map((app) => (
-            <option key={app.id} value={app.id}>
-              {app.name}
             </option>
           ))}
         </select>
@@ -157,6 +153,7 @@ export default async function TicketsPage({
               <TableHead>ID</TableHead>
               <TableHead>Titulo</TableHead>
               <TableHead>Aplicacao</TableHead>
+              <TableHead>Empresa</TableHead>
               <TableHead>Usuario</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Criado em</TableHead>
@@ -167,7 +164,7 @@ export default async function TicketsPage({
             {allTickets.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Nenhum chamado encontrado.
@@ -183,6 +180,7 @@ export default async function TicketsPage({
                     {ticket.title}
                   </TableCell>
                   <TableCell>{ticket.application.name}</TableCell>
+                  <TableCell>{ticket.company.name}</TableCell>
                   <TableCell>
                     {ticket.user.name}{" "}
                     <span className="text-xs text-muted-foreground">
@@ -214,3 +212,4 @@ export default async function TicketsPage({
     </PageShell>
   );
 }
+

@@ -1,14 +1,25 @@
-import jwt from "jsonwebtoken";
+﻿import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";
 
 const ACCESS_SECRET = process.env.JWT_SECRET!;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
 
+export interface SessionCompany {
+  id: string;
+  name: string;
+}
+
 export interface JWTPayload {
-  sub: string;         // ID do Usuário
-  email: string;       // E-mail para Bypass de Super Admin no SaaS
-  application: string; // Slug da aplicação (ex: bye-carie)
-  modules: Record<string, string[]>; // MBAC: { "pacientes": ["FULL"] }
+  sub: string;
+  email: string;
+  name?: string;
+  application: string;
+  applicationId: string;
+  modules: Record<string, string[]>;
+  isApplicationAdmin: boolean;
+  companyIds: string[];
+  companies: SessionCompany[];
+  activeCompanyId: string;
 }
 
 export function generateAccessToken(
@@ -29,3 +40,4 @@ export function verifyAccessToken(token: string): JWTPayload | null {
     return null;
   }
 }
+

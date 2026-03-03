@@ -1,11 +1,13 @@
-import { and, eq } from "drizzle-orm";
+﻿import { and, eq } from "drizzle-orm";
 import { hashPassword } from "../auth/password";
 import { db } from "./index";
 import {
   applications,
+  companies,
   modules,
   rolePermissions,
   roles,
+  userCompanies,
   userRoles,
   users,
 } from "./schema";
@@ -23,6 +25,32 @@ async function ensureModule(applicationId: string, name: string, slug: string) {
     .insert(modules)
     .values({ applicationId, name, slug })
     .returning();
+  return created;
+}
+
+async function ensureDefaultCompany(applicationId: string) {
+  const existing = await db.query.companies.findFirst({
+    where: and(
+      eq(companies.applicationId, applicationId),
+      eq(companies.status, "active"),
+    ),
+    orderBy: (table, { asc }) => [asc(table.createdAt)],
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  const [created] = await db
+    .insert(companies)
+    .values({
+      applicationId,
+      name: "Empresa Principal",
+      status: "active",
+      updatedAt: new Date(),
+    })
+    .returning();
+
   return created;
 }
 
@@ -49,6 +77,8 @@ async function main() {
         },
       })
       .returning();
+
+    const defaultCompany = await ensureDefaultCompany(adminApp.id);
 
     await ensureModule(adminApp.id, "Usuarios", "users");
     await ensureModule(adminApp.id, "Aplicacoes", "applications");
@@ -105,6 +135,7 @@ async function main() {
         email: adminEmail,
         passwordHash: hashedPassword,
         applicationId: adminApp.id,
+        isApplicationAdmin: true,
         isActive: true,
       })
       .onConflictDoUpdate({
@@ -113,6 +144,7 @@ async function main() {
           name: "Administrador",
           passwordHash: hashedPassword,
           applicationId: adminApp.id,
+          isApplicationAdmin: true,
           isActive: true,
         },
       })
@@ -121,7 +153,14 @@ async function main() {
     await db.delete(userRoles).where(eq(userRoles.userId, adminUser.id));
     await db.insert(userRoles).values({ userId: adminUser.id, roleId: adminRole.id });
 
+    await db.delete(userCompanies).where(eq(userCompanies.userId, adminUser.id));
+    await db.insert(userCompanies).values({
+      userId: adminUser.id,
+      companyId: defaultCompany.id,
+    });
+
     console.log(`Aplicacao Admin configurada: ${adminApp.slug}`);
+    console.log(`Empresa padrao configurada: ${defaultCompany.name}`);
     console.log(`Usuario mestre configurado: ${adminUser.email}`);
     console.log("Seed finalizado com sucesso");
   } catch (error) {
@@ -136,3 +175,4 @@ main()
     console.error(err);
     process.exit(1);
   });
+

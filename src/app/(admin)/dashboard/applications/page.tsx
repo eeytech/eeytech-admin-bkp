@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 
 import { desc } from "drizzle-orm";
 import dayjs from "dayjs";
@@ -29,7 +29,7 @@ export default async function ApplicationsPage({
   const status = filters.status ?? "all";
 
   const allApplications = await db.query.applications.findMany({
-    with: { modules: true },
+    with: { modules: true, companies: true },
     orderBy: [desc(applications.createdAt)],
   });
 
@@ -46,7 +46,7 @@ export default async function ApplicationsPage({
   return (
     <PageShell
       title="Aplicacoes"
-      description="Gerencie aplicacoes, modulos e disponibilidade."
+      description="Gerencie aplicacoes, empresas, modulos e disponibilidade."
       action={<CreateAppModal />}
     >
       <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-4">
@@ -77,6 +77,7 @@ export default async function ApplicationsPage({
               <TableHead>Nome</TableHead>
               <TableHead>Slug</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Empresas</TableHead>
               <TableHead>Modulos</TableHead>
               <TableHead>Criado em</TableHead>
               <TableHead className="text-right">Acoes</TableHead>
@@ -86,7 +87,7 @@ export default async function ApplicationsPage({
             {filteredApplications.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Nenhuma aplicacao encontrada.
@@ -106,6 +107,7 @@ export default async function ApplicationsPage({
                       {app.isActive ? "Ativa" : "Inativa"}
                     </Badge>
                   </TableCell>
+                  <TableCell>{app.companies.length}</TableCell>
                   <TableCell>{app.modules.length}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {dayjs(app.createdAt).format("DD/MM/YYYY")}
@@ -134,3 +136,4 @@ export default async function ApplicationsPage({
     </PageShell>
   );
 }
+

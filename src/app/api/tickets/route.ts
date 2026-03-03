@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { and, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { applications, ticketMessages, tickets, users } from "@/lib/db/schema";
+import { applications, companies, ticketMessages, tickets, users } from "@/lib/db/schema";
 import { verifyAccessToken } from "@/lib/auth/jwt";
+import { validateCompanyAccessFromPayload } from "@/lib/auth/company-context";
 
 const VALID_STATUSES = ["aguardando", "em_atendimento", "concluido"] as const;
 
@@ -15,6 +16,7 @@ export async function GET(req: Request) {
     const apiKeyHeader = req.headers.get("x-api-key");
 
     let forcedApplicationId: string | null = null;
+    let forcedCompanyId: string | null = null;
 
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
@@ -22,6 +24,18 @@ export async function GET(req: Request) {
       if (!payload) {
         return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
       }
+
+      const allowed = await validateCompanyAccessFromPayload(
+        payload,
+        payload.activeCompanyId,
+      );
+
+      if (!allowed) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      }
+
+      forcedApplicationId = payload.applicationId;
+      forcedCompanyId = payload.activeCompanyId;
     } else if (apiKeyHeader) {
       const app = await db.query.applications.findFirst({
         where: eq(applications.apiKey, apiKeyHeader),
@@ -31,13 +45,33 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: "API key invalida" }, { status: 401 });
       }
 
+      const requestedCompanyId = search.get("companyId");
+      if (!requestedCompanyId) {
+        return NextResponse.json(
+          { error: "companyId e obrigatorio para API key" },
+          { status: 400 },
+        );
+      }
+
+      const company = await db.query.companies.findFirst({
+        where: and(
+          eq(companies.id, requestedCompanyId),
+          eq(companies.applicationId, app.id),
+          eq(companies.status, "active"),
+        ),
+      });
+
+      if (!company) {
+        return NextResponse.json({ error: "Empresa invalida" }, { status: 403 });
+      }
+
       forcedApplicationId = app.id;
+      forcedCompanyId = company.id;
     } else {
       return NextResponse.json({ error: "Credenciais ausentes" }, { status: 401 });
     }
 
     const status = search.get("status");
-    const applicationId = forcedApplicationId ?? search.get("applicationId");
     const userId = search.get("userId");
     const q = search.get("q");
     const dateFrom = search.get("dateFrom");
@@ -45,11 +79,11 @@ export async function GET(req: Request) {
 
     const filters = [];
 
+    filters.push(eq(tickets.applicationId, forcedApplicationId!));
+    filters.push(eq(tickets.companyId, forcedCompanyId!));
+
     if (status && (VALID_STATUSES as readonly string[]).includes(status)) {
       filters.push(eq(tickets.status, status));
-    }
-    if (applicationId) {
-      filters.push(eq(tickets.applicationId, applicationId));
     }
     if (userId) {
       filters.push(eq(tickets.userId, userId));
@@ -73,9 +107,10 @@ export async function GET(req: Request) {
     }
 
     const rows = await db.query.tickets.findMany({
-      where: filters.length > 0 ? and(...filters) : undefined,
+      where: and(...filters),
       with: {
         application: true,
+        company: true,
         user: true,
       },
       orderBy: [desc(tickets.createdAt)],
@@ -96,6 +131,7 @@ export async function POST(req: Request) {
 
     let userId: string;
     let applicationId: string;
+    let companyId: string;
 
     if (authHeader?.startsWith("Bearer ")) {
       const payload = verifyAccessToken(authHeader.split(" ")[1]);
@@ -103,8 +139,18 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Token invalido" }, { status: 401 });
       }
 
+      const allowed = await validateCompanyAccessFromPayload(
+        payload,
+        payload.activeCompanyId,
+      );
+
+      if (!allowed) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      }
+
       userId = payload.sub;
-      applicationId = body.applicationId;
+      applicationId = payload.applicationId;
+      companyId = payload.activeCompanyId;
     } else if (apiKeyHeader) {
       const app = await db.query.applications.findFirst({
         where: eq(applications.apiKey, apiKeyHeader),
@@ -114,7 +160,28 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "API key invalida" }, { status: 401 });
       }
 
+      const requestedCompanyId = String(body.companyId ?? "");
+      if (!requestedCompanyId) {
+        return NextResponse.json(
+          { error: "companyId e obrigatorio para API key" },
+          { status: 400 },
+        );
+      }
+
+      const company = await db.query.companies.findFirst({
+        where: and(
+          eq(companies.id, requestedCompanyId),
+          eq(companies.applicationId, app.id),
+          eq(companies.status, "active"),
+        ),
+      });
+
+      if (!company) {
+        return NextResponse.json({ error: "Empresa invalida" }, { status: 403 });
+      }
+
       applicationId = app.id;
+      companyId = company.id;
       userId = body.userId;
     } else {
       return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
@@ -124,7 +191,11 @@ export async function POST(req: Request) {
       where: and(eq(applications.id, applicationId), eq(applications.isActive, true)),
     });
     const user = await db.query.users.findFirst({
-      where: and(eq(users.id, userId), eq(users.isActive, true)),
+      where: and(
+        eq(users.id, userId),
+        eq(users.applicationId, applicationId),
+        eq(users.isActive, true),
+      ),
     });
 
     if (!app || !user) {
@@ -149,6 +220,7 @@ export async function POST(req: Request) {
         .insert(tickets)
         .values({
           applicationId,
+          companyId,
           userId,
           title,
           description,
@@ -172,3 +244,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Erro ao criar chamado" }, { status: 500 });
   }
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import {
   List,
   Loader2,
   Settings,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -95,6 +96,12 @@ export function ApplicationActions({ app }: { app: Application }) {
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="cursor-pointer gap-2">
+            <Link href={`/dashboard/applications/${app.id}/companies`}>
+              <Building2 size={14} /> Gerenciar Empresas
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem asChild className="cursor-pointer gap-2">
             <Link href={`/dashboard/applications/${app.id}/settings`}>
               <Settings size={14} /> Configuracoes
             </Link>
@@ -174,3 +181,4 @@ export function ApplicationActions({ app }: { app: Application }) {
     </>
   );
 }
+
