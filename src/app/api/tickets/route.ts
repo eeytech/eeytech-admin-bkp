@@ -1,7 +1,14 @@
 ﻿import { NextResponse } from "next/server";
 import { and, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { applications, companies, ticketMessages, tickets, users } from "@/lib/db/schema";
+import {
+  applications,
+  companies,
+  ticketMessages,
+  tickets,
+  users,
+  userCompanies,
+} from "@/lib/db/schema";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import { validateCompanyAccessFromPayload } from "@/lib/auth/company-context";
 
@@ -17,7 +24,9 @@ export async function GET(req: Request) {
 
     let forcedApplicationId: string | null = null;
     let forcedCompanyId: string | null = null;
+    let isAppAdmin = false;
 
+    // 1. Identificação do Contexto (Token ou API Key)
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
       const payload = verifyAccessToken(token);
@@ -25,62 +34,66 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
       }
 
-      const allowed = await validateCompanyAccessFromPayload(
-        payload,
-        payload.activeCompanyId,
-      );
-
-      if (!allowed) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-      }
-
+      isAppAdmin = payload.isApplicationAdmin || false;
       forcedApplicationId = payload.applicationId;
       forcedCompanyId = payload.activeCompanyId;
+
+      // Se não for admin, validamos estritamente o acesso à empresa ativa
+      if (!isAppAdmin) {
+        const allowed = await validateCompanyAccessFromPayload(
+          payload,
+          forcedCompanyId,
+        );
+        if (!allowed) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+      }
     } else if (apiKeyHeader) {
       const app = await db.query.applications.findFirst({
         where: eq(applications.apiKey, apiKeyHeader),
       });
 
       if (!app) {
-        return NextResponse.json({ error: "API key invalida" }, { status: 401 });
-      }
-
-      const requestedCompanyId = search.get("companyId");
-      if (!requestedCompanyId) {
         return NextResponse.json(
-          { error: "companyId e obrigatorio para API key" },
-          { status: 400 },
+          { error: "API key invalida" },
+          { status: 401 },
         );
       }
 
-      const company = await db.query.companies.findFirst({
-        where: and(
-          eq(companies.id, requestedCompanyId),
-          eq(companies.applicationId, app.id),
-          eq(companies.status, "active"),
-        ),
-      });
-
-      if (!company) {
-        return NextResponse.json({ error: "Empresa invalida" }, { status: 403 });
-      }
-
       forcedApplicationId = app.id;
-      forcedCompanyId = company.id;
+      forcedCompanyId = search.get("companyId");
     } else {
-      return NextResponse.json({ error: "Credenciais ausentes" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Credenciais ausentes" },
+        { status: 401 },
+      );
     }
 
+    // 2. Construção dos Filtros
+    const filters = [];
+
+    // Lógica de Filtro de Segurança
+    if (!isAppAdmin) {
+      // Usuário comum: Vê apenas o que pertence à sua aplicação E empresa ativa
+      filters.push(eq(tickets.applicationId, forcedApplicationId!));
+      if (forcedCompanyId) {
+        filters.push(eq(tickets.companyId, forcedCompanyId));
+      }
+    } else {
+      // Administrador: Vê tudo da aplicação, mas pode filtrar por empresa específica
+      const reqAppId = search.get("applicationId") || forcedApplicationId;
+      const reqCompId = search.get("companyId");
+
+      if (reqAppId) filters.push(eq(tickets.applicationId, reqAppId));
+      if (reqCompId) filters.push(eq(tickets.companyId, reqCompId));
+    }
+
+    // Filtros de busca e data
     const status = search.get("status");
     const userId = search.get("userId");
     const q = search.get("q");
     const dateFrom = search.get("dateFrom");
     const dateTo = search.get("dateTo");
-
-    const filters = [];
-
-    filters.push(eq(tickets.applicationId, forcedApplicationId!));
-    filters.push(eq(tickets.companyId, forcedCompanyId!));
 
     if (status && (VALID_STATUSES as readonly string[]).includes(status)) {
       filters.push(eq(tickets.status, status));
@@ -133,20 +146,11 @@ export async function POST(req: Request) {
     let applicationId: string;
     let companyId: string;
 
+    // 1. Extração de Identidade
     if (authHeader?.startsWith("Bearer ")) {
       const payload = verifyAccessToken(authHeader.split(" ")[1]);
-      if (!payload) {
+      if (!payload)
         return NextResponse.json({ error: "Token invalido" }, { status: 401 });
-      }
-
-      const allowed = await validateCompanyAccessFromPayload(
-        payload,
-        payload.activeCompanyId,
-      );
-
-      if (!allowed) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-      }
 
       userId = payload.sub;
       applicationId = payload.applicationId;
@@ -155,62 +159,55 @@ export async function POST(req: Request) {
       const app = await db.query.applications.findFirst({
         where: eq(applications.apiKey, apiKeyHeader),
       });
-
-      if (!app) {
-        return NextResponse.json({ error: "API key invalida" }, { status: 401 });
-      }
-
-      const requestedCompanyId = String(body.companyId ?? "");
-      if (!requestedCompanyId) {
+      if (!app)
         return NextResponse.json(
-          { error: "companyId e obrigatorio para API key" },
-          { status: 400 },
+          { error: "API key invalida" },
+          { status: 401 },
         );
-      }
-
-      const company = await db.query.companies.findFirst({
-        where: and(
-          eq(companies.id, requestedCompanyId),
-          eq(companies.applicationId, app.id),
-          eq(companies.status, "active"),
-        ),
-      });
-
-      if (!company) {
-        return NextResponse.json({ error: "Empresa invalida" }, { status: 403 });
-      }
 
       applicationId = app.id;
-      companyId = company.id;
+      companyId = body.companyId;
       userId = body.userId;
     } else {
       return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
     }
 
-    const app = await db.query.applications.findFirst({
-      where: and(eq(applications.id, applicationId), eq(applications.isActive, true)),
-    });
-    const user = await db.query.users.findFirst({
-      where: and(
-        eq(users.id, userId),
-        eq(users.applicationId, applicationId),
-        eq(users.isActive, true),
-      ),
-    });
+    // 2. Validação e Auto-Ajuste (Resiliência)
+    const [app, user] = await Promise.all([
+      db.query.applications.findFirst({
+        where: eq(applications.id, applicationId),
+      }),
+      db.query.users.findFirst({ where: eq(users.id, userId) }),
+    ]);
 
     if (!app || !user) {
-      return NextResponse.json({ error: "Aplicacao ou usuario invalido" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Aplicacao ou usuario nao encontrado" },
+        { status: 400 },
+      );
     }
 
-    const status =
-      VALID_STATUSES.includes(body.status) ? body.status : "aguardando";
+    // Garantir vínculo com a empresa
+    await db
+      .insert(userCompanies)
+      .values({ userId, companyId })
+      .onConflictDoNothing();
 
+    // Garantir que o usuário está na aplicação correta
+    if (user.applicationId !== applicationId) {
+      await db.update(users).set({ applicationId }).where(eq(users.id, userId));
+    }
+
+    // 3. Criação do Ticket
+    const status = VALID_STATUSES.includes(body.status)
+      ? body.status
+      : "aguardando";
     const title = String(body.title ?? body.subject ?? "").trim();
     const description = String(body.description ?? body.content ?? "").trim();
 
     if (title.length < 5 || description.length < 10) {
       return NextResponse.json(
-        { error: "Titulo ou descricao invalidos" },
+        { error: "Titulo ou descricao muito curtos" },
         { status: 400 },
       );
     }
@@ -241,7 +238,9 @@ export async function POST(req: Request) {
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error("Tickets POST Error:", error);
-    return NextResponse.json({ error: "Erro ao criar chamado" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro ao criar chamado" },
+      { status: 500 },
+    );
   }
 }
-
