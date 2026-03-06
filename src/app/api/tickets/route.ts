@@ -11,8 +11,10 @@ import {
 } from "@/lib/db/schema";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import { validateCompanyAccessFromPayload } from "@/lib/auth/company-context";
-
-const VALID_STATUSES = ["aguardando", "em_atendimento", "concluido"] as const;
+import {
+  TICKET_STATUSES,
+  normalizeTicketStatus,
+} from "@/lib/tickets/status";
 
 export async function GET(req: Request) {
   try {
@@ -95,7 +97,7 @@ export async function GET(req: Request) {
     const dateFrom = search.get("dateFrom");
     const dateTo = search.get("dateTo");
 
-    if (status && (VALID_STATUSES as readonly string[]).includes(status)) {
+    if (status && (TICKET_STATUSES as readonly string[]).includes(status)) {
       filters.push(eq(tickets.status, status));
     }
     if (userId) {
@@ -199,9 +201,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Criação do Ticket
-    const status = VALID_STATUSES.includes(body.status)
-      ? body.status
-      : "aguardando";
+    const status = normalizeTicketStatus(body.status);
     const title = String(body.title ?? body.subject ?? "").trim();
     const description = String(body.description ?? body.content ?? "").trim();
 
@@ -235,7 +235,14 @@ export async function POST(req: Request) {
       return newTicket;
     });
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Chamado criado com sucesso",
+        ticket: result,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Tickets POST Error:", error);
     return NextResponse.json(

@@ -8,13 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TicketInteractions } from "./_components/ticket-interactions";
 import { requireCompanyContext } from "@/lib/permissions/mbac";
+import type { TicketStatus } from "@/lib/tickets/status";
 
 function getStatusBadge(status: string) {
-  if (status === "aguardando") return <Badge variant="destructive">Aguardando</Badge>;
-  if (status === "em_atendimento") {
+  if (status === "Aberto") return <Badge variant="destructive">Aberto</Badge>;
+  if (status === "Em Atendimento") {
     return <Badge className="bg-blue-500 hover:bg-blue-600">Em atendimento</Badge>;
   }
-  if (status === "concluido") return <Badge variant="secondary">Concluido</Badge>;
+  if (status === "Resolvido") return <Badge variant="secondary">Resolvido</Badge>;
+  if (status === "Cancelado") return <Badge variant="outline">Cancelado</Badge>;
   return <Badge variant="outline">{status}</Badge>;
 }
 
@@ -123,7 +125,7 @@ export default async function TicketDetailsPage({
 
           <TicketInteractions
             ticketId={ticket.id}
-            currentStatus={ticket.status as "aguardando" | "em_atendimento" | "concluido"}
+            currentStatus={ticket.status as TicketStatus}
           />
         </div>
       </div>

@@ -8,18 +8,21 @@ import { PageShell } from "@/components/admin/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardCharts } from "./_components/dashboard-charts";
+import { TICKET_STATUSES } from "@/lib/tickets/status";
 
 function statusLabel(status: string) {
-  if (status === "aguardando") return "Aguardando";
-  if (status === "em_atendimento") return "Em atendimento";
-  if (status === "concluido") return "Concluido";
+  if (status === "Aberto") return "Aberto";
+  if (status === "Em Atendimento") return "Em Atendimento";
+  if (status === "Resolvido") return "Resolvido";
+  if (status === "Cancelado") return "Cancelado";
   return status;
 }
 
 function statusColor(status: string) {
-  if (status === "aguardando") return "#ef4444";
-  if (status === "em_atendimento") return "#3b82f6";
-  if (status === "concluido") return "#22c55e";
+  if (status === "Aberto") return "#ef4444";
+  if (status === "Em Atendimento") return "#3b82f6";
+  if (status === "Resolvido") return "#22c55e";
+  if (status === "Cancelado") return "#64748b";
   return "#94a3b8";
 }
 
@@ -56,7 +59,7 @@ export default async function DashboardPage() {
       .groupBy(applications.name),
     db.query.tickets.findMany({
       with: { application: true, user: true },
-      where: eq(tickets.status, "aguardando"),
+      where: eq(tickets.status, "Aberto"),
       orderBy: [desc(tickets.createdAt)],
       limit: 5,
     }),
@@ -73,7 +76,7 @@ export default async function DashboardPage() {
   ]);
 
   const statusMap = new Map(statusRows.map((row) => [row.status, Number(row.count)]));
-  const byStatus = ["aguardando", "em_atendimento", "concluido"].map((status) => ({
+  const byStatus = TICKET_STATUSES.map((status) => ({
     status: statusLabel(status),
     total: statusMap.get(status) ?? 0,
     color: statusColor(status),
@@ -100,9 +103,10 @@ export default async function DashboardPage() {
     { title: "Total de Usuarios", value: Number(userCount.count) },
     { title: "Total de Perfis", value: Number(roleCount.count) },
     { title: "Total de Chamados", value: Number(ticketCount.count) },
-    { title: "Chamados Abertos", value: statusMap.get("aguardando") ?? 0 },
-    { title: "Chamados Em Atendimento", value: statusMap.get("em_atendimento") ?? 0 },
-    { title: "Chamados Concluidos", value: statusMap.get("concluido") ?? 0 },
+    { title: "Chamados Abertos", value: statusMap.get("Aberto") ?? 0 },
+    { title: "Chamados Em Atendimento", value: statusMap.get("Em Atendimento") ?? 0 },
+    { title: "Chamados Resolvidos", value: statusMap.get("Resolvido") ?? 0 },
+    { title: "Chamados Cancelados", value: statusMap.get("Cancelado") ?? 0 },
   ];
 
   return (

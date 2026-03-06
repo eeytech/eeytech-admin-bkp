@@ -19,23 +19,22 @@ import {
 } from "@/components/ui/table";
 import { MessageSquare } from "lucide-react";
 import { requireModulePermission } from "@/lib/permissions/mbac";
+import { TICKET_STATUSES } from "@/lib/tickets/status";
 
-const STATUS_OPTIONS = [
-  { value: "aguardando", label: "Aguardando" },
-  { value: "em_atendimento", label: "Em atendimento" },
-  { value: "concluido", label: "Concluído" },
-];
+const STATUS_OPTIONS = TICKET_STATUSES.map((status) => ({
+  value: status,
+  label: status,
+}));
 
 function statusBadge(status: string) {
-  if (status === "aguardando")
-    return <Badge variant="destructive">Aguardando</Badge>;
-  if (status === "em_atendimento") {
+  if (status === "Aberto") return <Badge variant="destructive">Aberto</Badge>;
+  if (status === "Em Atendimento") {
     return (
       <Badge className="bg-blue-500 hover:bg-blue-600">Em atendimento</Badge>
     );
   }
-  if (status === "concluido")
-    return <Badge variant="secondary">Concluído</Badge>;
+  if (status === "Resolvido") return <Badge variant="secondary">Resolvido</Badge>;
+  if (status === "Cancelado") return <Badge variant="outline">Cancelado</Badge>;
   return <Badge variant="outline">{status}</Badge>;
 }
 
@@ -111,7 +110,7 @@ export default async function TicketsPage({
       title="Gestão Global de Chamados"
       description="Visualize e gerencie todos os tickets de suporte de todas as aplicações e empresas."
     >
-      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-6">
+      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-7">
         <div className="md:col-span-2">
           <Input
             name="q"
@@ -146,10 +145,23 @@ export default async function TicketsPage({
           ))}
         </select>
 
+        <select
+          name="userId"
+          defaultValue={userId}
+          className="rounded-md border bg-background p-2 text-sm"
+        >
+          <option value="all">Todos os usuários</option>
+          {allUsers.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.name} ({user.email})
+            </option>
+          ))}
+        </select>
+
         <Input name="dateFrom" type="date" defaultValue={dateFrom} />
         <Input name="dateTo" type="date" defaultValue={dateTo} />
 
-        <div className="md:col-span-6 flex justify-between items-center gap-2">
+        <div className="md:col-span-7 flex justify-between items-center gap-2">
           <div className="text-xs text-muted-foreground">
             Exibindo {allTickets.length} chamado(s) encontrado(s).
           </div>

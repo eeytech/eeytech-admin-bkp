@@ -154,7 +154,7 @@ export const tickets = core.table("tickets", {
   title: text("title").notNull().default("Sem titulo"),
   description: text("description").notNull().default(""),
   subject: text("subject").notNull(),
-  status: varchar("status", { length: 20 }).default("aguardando").notNull(),
+  status: varchar("status", { length: 20 }).default("Aberto").notNull(),
   priority: varchar("priority", { length: 20 }).default("MEDIUM").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

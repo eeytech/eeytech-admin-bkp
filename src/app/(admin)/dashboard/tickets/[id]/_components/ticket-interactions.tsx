@@ -7,13 +7,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { replyTicketAction, updateTicketStatusAction } from "@/lib/actions/tickets";
+import { TICKET_STATUSES, type TicketStatus } from "@/lib/tickets/status";
 
 export function TicketInteractions({
   ticketId,
   currentStatus,
 }: {
   ticketId: string;
-  currentStatus: "aguardando" | "em_atendimento" | "concluido";
+  currentStatus: TicketStatus;
 }) {
   const [content, setContent] = useState("");
   const [status, setStatus] = useState(currentStatus);
@@ -45,9 +46,11 @@ export function TicketInteractions({
             onChange={(event) => setStatus(event.target.value as typeof status)}
             className="w-full rounded-md border bg-background p-2 text-sm"
           >
-            <option value="aguardando">Aguardando</option>
-            <option value="em_atendimento">Em atendimento</option>
-            <option value="concluido">Concluido</option>
+            {TICKET_STATUSES.map((ticketStatus) => (
+              <option key={ticketStatus} value={ticketStatus}>
+                {ticketStatus}
+              </option>
+            ))}
           </select>
           <Button
             disabled={isChangingStatus}

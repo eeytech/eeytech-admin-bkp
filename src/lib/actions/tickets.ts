@@ -7,17 +7,22 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { applications, companies, ticketMessages, tickets, users } from "@/lib/db/schema";
 import { requireCompanyContext, requireModulePermission } from "@/lib/permissions/mbac";
+import {
+  DEFAULT_TICKET_STATUS,
+  TICKET_STATUSES,
+  normalizeTicketStatus,
+} from "@/lib/tickets/status";
 
 const actionClient = createSafeActionClient();
 
-const ticketStatusSchema = z.enum(["aguardando", "em_atendimento", "concluido"]);
+const ticketStatusSchema = z.enum(TICKET_STATUSES);
 
 export const createTicketAction = actionClient
   .schema(
     z.object({
       title: z.string().min(5, "Titulo muito curto"),
       description: z.string().min(10, "Descricao muito curta"),
-      status: ticketStatusSchema.default("aguardando"),
+      status: ticketStatusSchema.default(DEFAULT_TICKET_STATUS),
     }),
   )
   .action(async ({ parsedInput }) => {
@@ -90,6 +95,8 @@ export const replyTicketAction = actionClient
       throw new Error("Unauthorized");
     }
 
+    const normalizedStatus = normalizeTicketStatus(targetTicket.status);
+
     await db.insert(ticketMessages).values({
       ticketId: parsedInput.ticketId,
       userId: session.sub,
@@ -98,7 +105,11 @@ export const replyTicketAction = actionClient
 
     await db
       .update(tickets)
-      .set({ updatedAt: new Date() })
+      .set({
+        status:
+          normalizedStatus === "Aberto" ? "Em Atendimento" : normalizedStatus,
+        updatedAt: new Date(),
+      })
       .where(eq(tickets.id, parsedInput.ticketId));
 
     revalidatePath(`/dashboard/tickets/${parsedInput.ticketId}`);

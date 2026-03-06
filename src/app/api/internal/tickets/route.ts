@@ -11,6 +11,7 @@ import {
   userCompanies,
   users,
 } from "@/lib/db/schema";
+import { DEFAULT_TICKET_STATUS } from "@/lib/tickets/status";
 
 // Schema de validação do payload vindo do SaaS
 const createInternalTicketSchema = z.object({
@@ -106,7 +107,7 @@ export async function POST(request: Request) {
           title,
           subject: title,
           description,
-          status: "aguardando",
+          status: DEFAULT_TICKET_STATUS,
         })
         .returning({ id: tickets.id });
 
