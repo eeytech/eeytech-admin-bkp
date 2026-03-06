@@ -1,4 +1,4 @@
-﻿import { and, asc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import dayjs from "dayjs";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -7,7 +7,7 @@ import { PageShell } from "@/components/admin/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TicketInteractions } from "./_components/ticket-interactions";
-import { requireCompanyContext } from "@/lib/permissions/mbac";
+import { requireModulePermission } from "@/lib/permissions/mbac";
 import type { TicketStatus } from "@/lib/tickets/status";
 
 function getStatusBadge(status: string) {
@@ -25,15 +25,11 @@ export default async function TicketDetailsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const context = await requireCompanyContext();
+  await requireModulePermission("tickets", "READ", "eeytech-admin");
   const { id } = await params;
 
   const ticket = await db.query.tickets.findFirst({
-    where: and(
-      eq(tickets.id, id),
-      eq(tickets.applicationId, context.applicationId),
-      eq(tickets.companyId, context.companyId),
-    ),
+    where: eq(tickets.id, id),
     with: {
       application: true,
       company: true,
@@ -132,5 +128,6 @@ export default async function TicketDetailsPage({
     </PageShell>
   );
 }
+
 
 

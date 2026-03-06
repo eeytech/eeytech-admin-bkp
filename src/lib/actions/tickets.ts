@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { createSafeActionClient } from "next-safe-action";
 import { z } from "zod";
@@ -81,14 +81,8 @@ export const replyTicketAction = actionClient
   )
   .action(async ({ parsedInput }) => {
     const session = await requireModulePermission("tickets", "WRITE", "eeytech-admin");
-    const context = await requireCompanyContext();
-
     const targetTicket = await db.query.tickets.findFirst({
-      where: and(
-        eq(tickets.id, parsedInput.ticketId),
-        eq(tickets.applicationId, context.applicationId),
-        eq(tickets.companyId, context.companyId),
-      ),
+      where: eq(tickets.id, parsedInput.ticketId),
     });
 
     if (!targetTicket) {
@@ -126,14 +120,8 @@ export const updateTicketStatusAction = actionClient
   )
   .action(async ({ parsedInput }) => {
     await requireModulePermission("tickets", "WRITE", "eeytech-admin");
-    const context = await requireCompanyContext();
-
     const targetTicket = await db.query.tickets.findFirst({
-      where: and(
-        eq(tickets.id, parsedInput.ticketId),
-        eq(tickets.applicationId, context.applicationId),
-        eq(tickets.companyId, context.companyId),
-      ),
+      where: eq(tickets.id, parsedInput.ticketId),
     });
 
     if (!targetTicket) {
@@ -182,4 +170,5 @@ export const getTicketFiltersAction = actionClient.action(async () => {
     activeCompanyId: context.companyId,
   };
 });
+
 
