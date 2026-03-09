@@ -63,6 +63,10 @@ export async function POST(req: Request) {
     activeCompanyId: companyContext.activeCompanyId,
     activeClinicId: companyContext.activeCompanyId,
   };
+  const sanitizedPayload = nextPayload as Record<string, unknown>;
+  delete sanitizedPayload.exp;
+  delete sanitizedPayload.iat;
+  delete sanitizedPayload.nbf;
 
   const refreshedToken = generateAccessToken(nextPayload, sessionTimeoutSeconds);
 
