@@ -1,4 +1,4 @@
-CREATE SCHEMA "core";
+CREATE SCHEMA IF NOT EXISTS "core";
 --> statement-breakpoint
 CREATE TABLE "core"."applications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
