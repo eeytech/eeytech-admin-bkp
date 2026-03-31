@@ -95,6 +95,7 @@ export const replyTicketAction = actionClient
       ticketId: parsedInput.ticketId,
       userId: session.sub,
       content: parsedInput.content,
+      source: "support",
     });
 
     await db

@@ -1,5 +1,6 @@
 ﻿import {
   pgSchema,
+  pgEnum,
   uuid,
   text,
   timestamp,
@@ -10,6 +11,11 @@
 import { relations } from "drizzle-orm";
 
 export const core = pgSchema("core");
+
+export const ticketMessageSourceEnum = pgEnum("ticket_message_source", [
+  "user",
+  "support",
+]);
 
 export const systemSettings = core.table("system_settings", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -169,6 +175,7 @@ export const ticketMessages = core.table("ticket_messages", {
     .references(() => users.id)
     .notNull(),
   content: text("content").notNull(),
+  source: ticketMessageSourceEnum("source").default("user").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

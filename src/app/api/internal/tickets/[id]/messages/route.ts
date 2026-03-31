@@ -3,12 +3,19 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { ticketMessages, tickets, users } from "@/lib/db/schema";
+import {
+  ticketMessageSourceEnum,
+  ticketMessages,
+  tickets,
+  users,
+} from "@/lib/db/schema";
 
 const createInternalTicketMessageSchema = z.object({
   content: z.string().trim().min(1, "Conteudo obrigatorio"),
   userId: z.string().uuid("userId invalido"),
-  source: z.string().trim().min(1, "source obrigatorio"),
+  source: z.enum(ticketMessageSourceEnum.enumValues, {
+    error: "source invalido",
+  }),
 });
 
 function isUnauthorized(request: Request) {
@@ -64,6 +71,7 @@ export async function GET(
       messages.map((message) => ({
         id: message.id,
         content: message.content,
+        source: message.source,
         createdAt: message.createdAt,
         userId: message.userId,
         user: message.user,
@@ -129,10 +137,12 @@ export async function POST(
           ticketId: id,
           userId,
           content,
+          source,
         })
         .returning({
           id: ticketMessages.id,
           content: ticketMessages.content,
+          source: ticketMessages.source,
           createdAt: ticketMessages.createdAt,
           userId: ticketMessages.userId,
         });

@@ -1,4 +1,4 @@
-﻿{
+{
   "version": "7",
   "dialect": "postgresql",
   "entries": [
@@ -43,7 +43,13 @@
       "when": 1772812800000,
       "tag": "0005_ticket_status_ptbr",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774955474765,
+      "tag": "0006_romantic_the_executioner",
+      "breakpoints": true
     }
   ]
 }
-
