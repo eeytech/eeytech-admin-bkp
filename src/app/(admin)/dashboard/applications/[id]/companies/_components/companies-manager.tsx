@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useAction } from "next-safe-action/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import dayjs from "dayjs";
 import { Loader2, Pencil, Plus, Power, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { useAction } from "next-safe-action/hooks";
+import { z } from "zod";
 import { toast } from "sonner";
+
 import {
   createCompanyAction,
   deleteCompanyAction,
@@ -91,12 +92,12 @@ export function CompaniesManager({
     createCompanyAction,
     {
       onSuccess: () => {
-        toast.success("Empresa criada com sucesso");
+        toast.success("Empresa de acesso criada com sucesso");
         setCreateOpen(false);
         createForm.reset();
       },
       onError: ({ error }) =>
-        toast.error(error.serverError || "Erro ao criar empresa"),
+        toast.error(error.serverError || "Erro ao criar empresa de acesso"),
     },
   );
 
@@ -104,18 +105,18 @@ export function CompaniesManager({
     updateCompanyAction,
     {
       onSuccess: () => {
-        toast.success("Empresa atualizada");
+        toast.success("Empresa de acesso atualizada");
         setEditingCompany(null);
       },
       onError: ({ error }) =>
-        toast.error(error.serverError || "Erro ao atualizar empresa"),
+        toast.error(error.serverError || "Erro ao atualizar empresa de acesso"),
     },
   );
 
   const { execute: toggleStatus, isPending: isToggling } = useAction(
     toggleCompanyStatusAction,
     {
-      onSuccess: () => toast.success("Status da empresa atualizado"),
+      onSuccess: () => toast.success("Status de acesso atualizado"),
       onError: ({ error }) =>
         toast.error(error.serverError || "Erro ao atualizar status"),
     },
@@ -124,9 +125,9 @@ export function CompaniesManager({
   const { execute: deleteCompany, isPending: isDeleting } = useAction(
     deleteCompanyAction,
     {
-      onSuccess: () => toast.success("Empresa excluída"),
+      onSuccess: () => toast.success("Empresa de acesso excluída"),
       onError: ({ error }) =>
-        toast.error(error.serverError || "Erro ao excluir empresa"),
+        toast.error(error.serverError || "Erro ao excluir empresa de acesso"),
     },
   );
 
@@ -154,21 +155,24 @@ export function CompaniesManager({
     <div className="space-y-4">
       <div className="flex items-center justify-between rounded-md border bg-card p-4 text-sm">
         <div>
-          <p>Total de empresas: {companies.length}</p>
-          <p className="text-muted-foreground">Empresas ativas: {activeCount}</p>
+          <p>Total de empresas de acesso: {companies.length}</p>
+          <p className="text-muted-foreground">
+            Empresas ativas para login: {activeCount}
+          </p>
         </div>
 
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2" size="sm">
-              <Plus size={16} /> Nova Empresa
+              <Plus size={16} /> Nova Empresa de Acesso
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Criar empresa</DialogTitle>
+              <DialogTitle>Criar empresa de acesso</DialogTitle>
               <DialogDescription>
-                A empresa será vinculada a esta aplicação.
+                A empresa será vinculada a esta aplicação para login, permissões
+                e escopo operacional.
               </DialogDescription>
             </DialogHeader>
 
@@ -182,9 +186,9 @@ export function CompaniesManager({
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nome</FormLabel>
+                      <FormLabel>Nome da empresa</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nome da empresa" {...field} />
+                        <Input placeholder="Nome da empresa de acesso" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -208,7 +212,7 @@ export function CompaniesManager({
                 <DialogFooter>
                   <Button type="submit" disabled={isCreating}>
                     {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Criar Empresa
+                    Criar Empresa de Acesso
                   </Button>
                 </DialogFooter>
               </form>
@@ -232,7 +236,7 @@ export function CompaniesManager({
             {companies.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                  Nenhuma empresa cadastrada para esta aplicação.
+                  Nenhuma empresa de acesso cadastrada para esta aplicação.
                 </TableCell>
               </TableRow>
             ) : (
@@ -279,7 +283,7 @@ export function CompaniesManager({
                         }
                       >
                         <Power size={14} />
-                        {company.status === "active" ? "Desativar" : "Ativar"}
+                        {company.status === "active" ? "Desativar acesso" : "Ativar acesso"}
                       </Button>
 
                       <Button
@@ -312,9 +316,9 @@ export function CompaniesManager({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar empresa</DialogTitle>
+            <DialogTitle>Editar empresa de acesso</DialogTitle>
             <DialogDescription>
-              Atualize os dados da empresa selecionada.
+              Atualize os dados da empresa usada no contexto desta aplicação.
             </DialogDescription>
           </DialogHeader>
 

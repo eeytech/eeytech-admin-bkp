@@ -97,7 +97,7 @@ export function ApplicationActions({ app }: { app: Application }) {
 
           <DropdownMenuItem asChild className="cursor-pointer gap-2">
             <Link href={`/dashboard/applications/${app.id}/companies`}>
-              <Building2 size={14} /> Gerenciar Empresas
+              <Building2 size={14} /> Empresas de Acesso
             </Link>
           </DropdownMenuItem>
 

@@ -7,6 +7,7 @@ import {
   BanknoteArrowDown,
   Blocks,
   Building2,
+  Building2 as BuildingAccess,
   FileText,
   Globe,
   Landmark,
@@ -39,7 +40,7 @@ const navigationGroups: { label: string; items: MenuItem[] }[] = [
     label: "CRM & Gestão",
     items: [
       { name: "Dashboard Financeiro", href: "/dashboard/finance", icon: Landmark },
-      { name: "Empresas", href: "/dashboard/companies", icon: Building2 },
+      { name: "Empresas (Clientes)", href: "/dashboard/companies", icon: Building2 },
       { name: "Contratos", href: "/dashboard/contracts", icon: FileText },
       { name: "Receitas", href: "/dashboard/payments", icon: BanknoteArrowDown },
       { name: "Despesas", href: "/dashboard/expenses", icon: Receipt },
@@ -50,6 +51,7 @@ const navigationGroups: { label: string; items: MenuItem[] }[] = [
     items: [
       { name: "Painel SSO", href: "/dashboard", icon: Blocks },
       { name: "Aplicações", href: "/dashboard/applications", icon: Globe },
+      { name: "Empresas de Acesso", href: "/dashboard/access-companies", icon: BuildingAccess },
       { name: "Perfis de Acesso", href: "/dashboard/roles", icon: ShieldCheck },
       { name: "Usuários", href: "/dashboard/users", icon: Users },
     ],

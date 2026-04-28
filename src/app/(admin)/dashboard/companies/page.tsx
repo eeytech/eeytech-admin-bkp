@@ -1,13 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import { desc, ilike, or, eq, and, count } from "drizzle-orm";
+import { count, desc, eq, ilike, or } from "drizzle-orm";
 import dayjs from "dayjs";
-import Link from "next/link";
 import { Eye, Search } from "lucide-react";
+import Link from "next/link";
 
-import { db } from "@/lib/db";
-import { companies, applications } from "@/lib/db/schema";
 import { PageShell } from "@/components/admin/page-shell";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,7 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { db } from "@/lib/db";
+import { applications, companies } from "@/lib/db/schema";
 import { CreateCompanyModal } from "./_components/create-company-modal";
 
 export default async function CompaniesPage({
@@ -36,11 +36,10 @@ export default async function CompaniesPage({
     ? or(
         ilike(companies.name, `%${search}%`),
         ilike(companies.cnpj, `%${search}%`),
-        ilike(companies.email, `%${search}%`)
+        ilike(companies.email, `%${search}%`),
       )
     : undefined;
 
-  // Busca de dados em paralelo
   const [totalCountResult, allCompanies, apps] = await Promise.all([
     db.select({ total: count() }).from(companies).where(whereClause),
     db.query.companies.findMany({
@@ -49,12 +48,13 @@ export default async function CompaniesPage({
         application: true,
       },
       limit: pageSize,
-      offset: offset,
+      offset,
       orderBy: [desc(companies.createdAt)],
     }),
-    db.select({ id: applications.id, name: applications.name })
+    db
+      .select({ id: applications.id, name: applications.name })
       .from(applications)
-      .where(eq(applications.isActive, true))
+      .where(eq(applications.isActive, true)),
   ]);
 
   const totalCompanies = totalCountResult[0]?.total || 0;
@@ -62,30 +62,30 @@ export default async function CompaniesPage({
 
   return (
     <PageShell
-      title="Empresas"
-      description="Gerencie seus clientes, contratos e pagamentos."
+      title="Empresas (Clientes)"
+      description="Gerencie a carteira comercial da eeyTech com contratos, recebíveis e relacionamento financeiro."
       action={<CreateCompanyModal applications={apps} />}
     >
-      <div className="flex items-center gap-2 mb-4">
-        <form className="relative flex-1 max-w-sm w-full">
+      <div className="mb-4 flex items-center gap-2">
+        <form className="relative w-full max-w-sm flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             name="q"
-            placeholder="Buscar empresa, CNPJ ou e-mail..."
+            placeholder="Buscar cliente, CNPJ ou e-mail..."
             className="pl-8"
             defaultValue={search}
           />
         </form>
       </div>
 
-      <div className="rounded-md border bg-card overflow-hidden">
+      <div className="overflow-hidden rounded-md border bg-card">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[200px]">Empresa</TableHead>
+                <TableHead className="min-w-[200px]">Cliente</TableHead>
                 <TableHead className="min-w-[150px]">CNPJ</TableHead>
-                <TableHead className="min-w-[120px]">Aplicação</TableHead>
+                <TableHead className="min-w-[140px]">Aplicação principal</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="min-w-[100px]">Criado em</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -94,11 +94,8 @@ export default async function CompaniesPage({
             <TableBody>
               {allCompanies.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="h-24 text-center text-muted-foreground"
-                  >
-                    Nenhuma empresa encontrada.
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    Nenhum cliente encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -107,7 +104,7 @@ export default async function CompaniesPage({
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium text-zinc-900">{company.name}</span>
-                        <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                        <span className="max-w-[180px] truncate text-xs text-muted-foreground">
                           {company.email || "Sem e-mail"}
                         </span>
                       </div>
@@ -125,14 +122,14 @@ export default async function CompaniesPage({
                         {company.status === "active" ? "Ativa" : "Inativa"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                       {dayjs(company.createdAt).format("DD/MM/YYYY")}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button asChild variant="ghost" size="icon">
                         <Link href={`/dashboard/companies/${company.id}`}>
                           <Eye className="h-4 w-4" />
-                          <span className="sr-only">Ver detalhes</span>
+                          <span className="sr-only">Abrir ficha CRM</span>
                         </Link>
                       </Button>
                     </TableCell>
@@ -151,16 +148,9 @@ export default async function CompaniesPage({
               Página {page} de {totalPages}
             </p>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                asChild={page > 1}
-              >
+              <Button variant="outline" size="sm" disabled={page <= 1} asChild={page > 1}>
                 {page > 1 ? (
-                  <Link
-                    href={`/dashboard/companies?page=${page - 1}&q=${search}`}
-                  >
+                  <Link href={`/dashboard/companies?page=${page - 1}&q=${search}`}>
                     Anterior
                   </Link>
                 ) : (
@@ -174,9 +164,7 @@ export default async function CompaniesPage({
                 asChild={page < totalPages}
               >
                 {page < totalPages ? (
-                  <Link
-                    href={`/dashboard/companies?page=${page + 1}&q=${search}`}
-                  >
+                  <Link href={`/dashboard/companies?page=${page + 1}&q=${search}`}>
                     Próximo
                   </Link>
                 ) : (

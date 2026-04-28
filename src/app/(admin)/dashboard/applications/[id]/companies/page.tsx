@@ -27,8 +27,8 @@ export default async function ApplicationCompaniesPage({
 
   return (
     <PageShell
-      title={`Empresas - ${application.name}`}
-      description="Crie, edite, ative, desative e exclua empresas da aplicacao."
+      title={`Empresas de acesso - ${application.name}`}
+      description="Crie, edite, ative, desative e exclua as empresas usadas no contexto de acesso desta aplicação."
     >
       <CompaniesManager
         applicationId={application.id}

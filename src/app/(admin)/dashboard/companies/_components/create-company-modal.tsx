@@ -1,13 +1,13 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Plus } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
-import { toast } from "sonner";
 import { PatternFormat } from "react-number-format";
+import { useAction } from "next-safe-action/hooks";
+import { z } from "zod";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +32,7 @@ import { createCompanyAction } from "@/lib/actions/companies";
 
 const companyFormSchema = z.object({
   applicationId: z.string().uuid("Aplicação inválida"),
-  name: z.string().min(2, "Razão Social deve ter ao menos 2 caracteres"),
+  name: z.string().min(2, "Razão social deve ter ao menos 2 caracteres"),
   tradeName: z.string().optional(),
   cnpj: z.string().optional(),
   email: z.string().email("E-mail inválido").optional().or(z.literal("")),
@@ -62,12 +62,12 @@ export function CreateCompanyModal({ applications }: CreateCompanyModalProps) {
 
   const { execute, isExecuting } = useAction(createCompanyAction, {
     onSuccess: () => {
-      toast.success("Empresa criada com sucesso!");
+      toast.success("Cliente cadastrado com sucesso!");
       setOpen(false);
       form.reset();
     },
     onError: ({ error }) => {
-      toast.error(error.serverError || "Erro ao criar empresa");
+      toast.error(error.serverError || "Erro ao cadastrar cliente");
     },
   });
 
@@ -80,29 +80,33 @@ export function CreateCompanyModal({ applications }: CreateCompanyModalProps) {
       <DialogTrigger asChild>
         <Button className="bg-primary/95 hover:bg-primary">
           <Plus className="mr-2 h-4 w-4" />
-          Nova Empresa
+          Novo Cliente
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Nova Empresa</DialogTitle>
+          <DialogTitle>Novo Cliente</DialogTitle>
           <DialogDescription>
-            Cadastre uma nova empresa cliente no sistema.
+            Cadastre uma empresa cliente para o CRM e vincule-a à aplicação
+            principal usada no contexto de acesso.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2 px-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="max-h-[70vh] space-y-4 overflow-y-auto px-1 py-4 pr-2"
+          >
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="applicationId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Aplicação</FormLabel>
+                    <FormLabel>Aplicação principal</FormLabel>
                     <select
                       {...field}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {applications.map((app) => (
                         <option key={app.id} value={app.id}>
@@ -141,9 +145,9 @@ export function CreateCompanyModal({ applications }: CreateCompanyModalProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Razão Social</FormLabel>
+                  <FormLabel>Razão social</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Eeytech Soluções Ltda" {...field} />
+                    <Input placeholder="Ex: Empresa Exemplo Ltda" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -155,22 +159,22 @@ export function CreateCompanyModal({ applications }: CreateCompanyModalProps) {
               name="tradeName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome Fantasia</FormLabel>
+                  <FormLabel>Nome fantasia</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Eeytech" {...field} />
+                    <Input placeholder="Ex: Empresa Exemplo" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>E-mail de Contato</FormLabel>
+                    <FormLabel>E-mail de contato</FormLabel>
                     <FormControl>
                       <Input placeholder="contato@empresa.com" {...field} />
                     </FormControl>
@@ -201,15 +205,11 @@ export function CreateCompanyModal({ applications }: CreateCompanyModalProps) {
             </div>
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={isExecuting} className="bg-primary/95">
-                {isExecuting ? "Salvando..." : "Salvar Empresa"}
+                {isExecuting ? "Salvando..." : "Salvar Cliente"}
               </Button>
             </DialogFooter>
           </form>
