@@ -1,8 +1,9 @@
 ﻿export const dynamic = "force-dynamic";
 
-import { desc } from "drizzle-orm";
+import { and, desc, eq, ilike, or, count } from "drizzle-orm";
 import dayjs from "dayjs";
 import { Ban, CheckCircle } from "lucide-react";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { PageShell } from "@/components/admin/page-shell";
@@ -23,52 +24,71 @@ import {
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; applicationId?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; applicationId?: string; status?: string; page?: string }>;
 }) {
   const filters = await searchParams;
-  const q = (filters.q ?? "").trim().toLowerCase();
+  const q = (filters.q ?? "").trim();
   const filterApplicationId = filters.applicationId ?? "all";
   const filterStatus = filters.status ?? "all";
+  const page = Math.max(1, parseInt(filters.page ?? "1"));
+  const pageSize = 10;
+  const offset = (page - 1) * pageSize;
 
-  const allUsers = await db.query.users.findMany({
+  // Filtros
+  const whereConditions = [];
+  if (q) {
+    whereConditions.push(
+      or(
+        ilike(users.name, `%${q}%`),
+        ilike(users.email, `%${q}%`)
+      )
+    );
+  }
+  if (filterApplicationId !== "all") {
+    whereConditions.push(eq(users.applicationId, filterApplicationId));
+  }
+  if (filterStatus !== "all") {
+    whereConditions.push(eq(users.isActive, filterStatus === "active"));
+  }
+
+  const finalWhere = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+  // Busca de dados em paralelo
+  const [totalCountResult, allApplications] = await Promise.all([
+    db.select({ total: count() }).from(users).where(finalWhere),
+    db.query.applications.findMany({
+      with: {
+        companies: {
+          orderBy: (table, { asc }) => [asc(table.name)],
+        },
+        roles: {
+          orderBy: (table, { asc }) => [asc(table.name)],
+        },
+      },
+      orderBy: (table, { asc }) => [asc(table.name)],
+    }),
+  ]);
+
+  const totalUsers = totalCountResult[0]?.total || 0;
+  const totalPages = Math.ceil(totalUsers / pageSize);
+
+  const filteredUsers = await db.query.users.findMany({
+    where: finalWhere,
     with: {
       application: true,
       companies: {
         with: { company: true },
       },
     },
+    limit: pageSize,
+    offset: offset,
     orderBy: [desc(users.createdAt)],
-  });
-  const allApplications = await db.query.applications.findMany({
-    with: {
-      companies: {
-        orderBy: (table, { asc }) => [asc(table.name)],
-      },
-      roles: {
-        orderBy: (table, { asc }) => [asc(table.name)],
-      },
-    },
-    orderBy: (table, { asc }) => [asc(table.name)],
   });
 
   const activeApplications = allApplications.filter((application) => application.isActive);
   if (activeApplications.length === 0) {
     activeApplications.push(...allApplications);
   }
-
-  const filteredUsers = allUsers.filter((user) => {
-    const matchText =
-      !q ||
-      user.name.toLowerCase().includes(q) ||
-      user.email.toLowerCase().includes(q);
-    const matchApplication =
-      filterApplicationId === "all" || user.applicationId === filterApplicationId;
-    const matchStatus =
-      filterStatus === "all" ||
-      (filterStatus === "active" && user.isActive) ||
-      (filterStatus === "inactive" && !user.isActive);
-    return matchText && matchApplication && matchStatus;
-  });
 
   return (
     <PageShell
@@ -220,6 +240,53 @@ export default async function UsersPage({
           </Table>
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Página {page} de {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                asChild={page > 1}
+              >
+                {page > 1 ? (
+                  <Link
+                    href={`/dashboard/users?page=${page - 1}&q=${q}&applicationId=${filterApplicationId}&status=${filterStatus}`}
+                  >
+                    Anterior
+                  </Link>
+                ) : (
+                  <span>Anterior</span>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                asChild={page < totalPages}
+              >
+                {page < totalPages ? (
+                  <Link
+                    href={`/dashboard/users?page=${page + 1}&q=${q}&applicationId=${filterApplicationId}&status=${filterStatus}`}
+                  >
+                    Próximo
+                  </Link>
+                ) : (
+                  <span>Próximo</span>
+                )}
+              </Button>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground text-center border-t pt-4">
+            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalUsers)} de {totalUsers} usuário(s).
+          </div>
+        </div>
+      )}
     </PageShell>
   );
 }

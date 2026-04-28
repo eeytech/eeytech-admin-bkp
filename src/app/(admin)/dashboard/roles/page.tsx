@@ -155,44 +155,48 @@ export default async function RolesPage({
       </div>
 
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Mostrando {offset + 1} a {Math.min(offset + pageSize, totalRoles)} de{" "}
-            {totalRoles} perfis
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              asChild={page > 1}
-            >
-              {page > 1 ? (
-                <Link
-                  href={`/dashboard/roles?page=${page - 1}&q=${q}&applicationId=${applicationId}`}
-                >
-                  Anterior
-                </Link>
-              ) : (
-                <span>Anterior</span>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              asChild={page < totalPages}
-            >
-              {page < totalPages ? (
-                <Link
-                  href={`/dashboard/roles?page=${page + 1}&q=${q}&applicationId=${applicationId}`}
-                >
-                  Próximo
-                </Link>
-              ) : (
-                <span>Próximo</span>
-              )}
-            </Button>
+        <div className="mt-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Página {page} de {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                asChild={page > 1}
+              >
+                {page > 1 ? (
+                  <Link
+                    href={`/dashboard/roles?page=${page - 1}&q=${q}&applicationId=${applicationId}`}
+                  >
+                    Anterior
+                  </Link>
+                ) : (
+                  <span>Anterior</span>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                asChild={page < totalPages}
+              >
+                {page < totalPages ? (
+                  <Link
+                    href={`/dashboard/roles?page=${page + 1}&q=${q}&applicationId=${applicationId}`}
+                  >
+                    Próximo
+                  </Link>
+                ) : (
+                  <span>Próximo</span>
+                )}
+              </Button>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground text-center border-t pt-4">
+            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalRoles)} de {totalRoles} perfis.
           </div>
         </div>
       )}

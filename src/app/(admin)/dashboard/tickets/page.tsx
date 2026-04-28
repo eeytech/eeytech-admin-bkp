@@ -128,116 +128,49 @@ export default async function TicketsPage({
         applications={allApplications}
       />
 
-      <div className="text-xs text-muted-foreground mb-4">
-        Exibindo {offset + 1} a {Math.min(offset + pageSize, totalTickets)} de {totalTickets} chamado(s).
-      </div>
-
-      <div className="rounded-md border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[200px]">Título</TableHead>
-                <TableHead className="min-w-[120px]">Aplicação</TableHead>
-                <TableHead className="min-w-[150px]">Empresa</TableHead>
-                <TableHead className="min-w-[180px]">Usuário</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="min-w-[150px]">Criado em</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTickets.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="h-24 text-center text-muted-foreground"
-                  >
-                    Nenhum chamado encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredTickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
-                    <TableCell className="max-w-[200px] truncate font-medium">
-                      {ticket.title}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="whitespace-nowrap">
-                        {ticket.application?.name ?? "N/A"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[150px] truncate">
-                      {ticket.company?.name ?? "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-sm truncate max-w-[150px]">
-                          {ticket.user?.name ?? "Desconhecido"}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">
-                          {ticket.user?.email}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{statusBadge(ticket.status)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {dayjs(ticket.createdAt).format("DD/MM/YYYY HH:mm")}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button asChild variant="ghost" size="sm" className="gap-2">
-                        <Link href={`/dashboard/tickets/${ticket.id}`}>
-                          <MessageSquare size={16} />
-                          Ver
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Página {page} de {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              asChild={page > 1}
-            >
-              {page > 1 ? (
-                <Link
-                  href={`/dashboard/tickets?page=${page - 1}&q=${q}&status=${status}&userId=${userId}&applicationId=${applicationId}&dateFrom=${dateFrom}&dateTo=${dateTo}`}
-                >
-                  Anterior
-                </Link>
-              ) : (
-                <span>Anterior</span>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              asChild={page < totalPages}
-            >
-              {page < totalPages ? (
-                <Link
-                  href={`/dashboard/tickets?page=${page + 1}&q=${q}&status=${status}&userId=${userId}&applicationId=${applicationId}&dateFrom=${dateFrom}&dateTo=${dateTo}`}
-                >
-                  Próximo
-                </Link>
-              ) : (
-                <span>Próximo</span>
-              )}
-            </Button>
+        <div className="mt-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Página {page} de {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                asChild={page > 1}
+              >
+                {page > 1 ? (
+                  <Link
+                    href={`/dashboard/tickets?page=${page - 1}&q=${q}&status=${status}&userId=${userId}&applicationId=${applicationId}&dateFrom=${dateFrom}&dateTo=${dateTo}`}
+                  >
+                    Anterior
+                  </Link>
+                ) : (
+                  <span>Anterior</span>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                asChild={page < totalPages}
+              >
+                {page < totalPages ? (
+                  <Link
+                    href={`/dashboard/tickets?page=${page + 1}&q=${q}&status=${status}&userId=${userId}&applicationId=${applicationId}&dateFrom=${dateFrom}&dateTo=${dateTo}`}
+                  >
+                    Próximo
+                  </Link>
+                ) : (
+                  <span>Próximo</span>
+                )}
+              </Button>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground text-center border-t pt-4">
+            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalTickets)} de {totalTickets} chamado(s).
           </div>
         </div>
       )}

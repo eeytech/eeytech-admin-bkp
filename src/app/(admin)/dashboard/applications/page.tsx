@@ -1,7 +1,8 @@
 ﻿export const dynamic = "force-dynamic";
 
-import { desc } from "drizzle-orm";
+import { and, desc, eq, ilike, or, count } from "drizzle-orm";
 import dayjs from "dayjs";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { applications } from "@/lib/db/schema";
 import { PageShell } from "@/components/admin/page-shell";
@@ -22,26 +23,40 @@ import {
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
   const filters = await searchParams;
-  const q = (filters.q ?? "").trim().toLowerCase();
+  const q = (filters.q ?? "").trim();
   const status = filters.status ?? "all";
+  const page = Math.max(1, parseInt(filters.page ?? "1"));
+  const pageSize = 10;
+  const offset = (page - 1) * pageSize;
 
-  const allApplications = await db.query.applications.findMany({
-    with: { modules: true, companies: true },
-    orderBy: [desc(applications.createdAt)],
-  });
+  // Filtros
+  const whereConditions = [];
+  if (q) {
+    whereConditions.push(ilike(applications.name, `%${q}%`));
+  }
+  if (status !== "all") {
+    whereConditions.push(eq(applications.isActive, status === "active"));
+  }
 
-  const filteredApplications = allApplications.filter((app) => {
-    const matchName = !q || app.name.toLowerCase().includes(q);
-    const matchStatus =
-      status === "all" ||
-      (status === "active" && app.isActive) ||
-      (status === "inactive" && !app.isActive);
+  const finalWhere = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-    return matchName && matchStatus;
-  });
+  // Busca de dados em paralelo
+  const [totalCountResult, filteredApplications] = await Promise.all([
+    db.select({ total: count() }).from(applications).where(finalWhere),
+    db.query.applications.findMany({
+      where: finalWhere,
+      with: { modules: true, companies: true },
+      limit: pageSize,
+      offset: offset,
+      orderBy: [desc(applications.createdAt)],
+    })
+  ]);
+
+  const totalApplications = totalCountResult[0]?.total || 0;
+  const totalPages = Math.ceil(totalApplications / pageSize);
 
   return (
     <PageShell
@@ -65,7 +80,7 @@ export default async function ApplicationsPage({
             Filtrar
           </Button>
           <Button asChild variant="ghost" className="w-full sm:w-auto">
-            <a href="/dashboard/applications">Limpar</a>
+            <Link href="/dashboard/applications">Limpar</Link>
           </Button>
         </div>
       </form>
@@ -135,6 +150,53 @@ export default async function ApplicationsPage({
           </Table>
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Página {page} de {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                asChild={page > 1}
+              >
+                {page > 1 ? (
+                  <Link
+                    href={`/dashboard/applications?page=${page - 1}&q=${q}&status=${status}`}
+                  >
+                    Anterior
+                  </Link>
+                ) : (
+                  <span>Anterior</span>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                asChild={page < totalPages}
+              >
+                {page < totalPages ? (
+                  <Link
+                    href={`/dashboard/applications?page=${page + 1}&q=${q}&status=${status}`}
+                  >
+                    Próximo
+                  </Link>
+                ) : (
+                  <span>Próximo</span>
+                )}
+              </Button>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground text-center border-t pt-4">
+            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalApplications)} de {totalApplications} aplicação(ões).
+          </div>
+        </div>
+      )}
     </PageShell>
   );
 }

@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { desc, ilike, or, eq } from "drizzle-orm";
+import { desc, ilike, or, eq, and, count } from "drizzle-orm";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { Eye, Search } from "lucide-react";
@@ -24,10 +24,13 @@ import { CreateCompanyModal } from "./_components/create-company-modal";
 export default async function CompaniesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, page: pageParam } = await searchParams;
   const search = (q ?? "").trim();
+  const page = Math.max(1, parseInt(pageParam ?? "1"));
+  const pageSize = 10;
+  const offset = (page - 1) * pageSize;
 
   const whereClause = search
     ? or(
@@ -37,17 +40,25 @@ export default async function CompaniesPage({
       )
     : undefined;
 
-  const allCompanies = await db.query.companies.findMany({
-    where: whereClause,
-    with: {
-      application: true,
-    },
-    orderBy: [desc(companies.createdAt)],
-  });
+  // Busca de dados em paralelo
+  const [totalCountResult, allCompanies, apps] = await Promise.all([
+    db.select({ total: count() }).from(companies).where(whereClause),
+    db.query.companies.findMany({
+      where: whereClause,
+      with: {
+        application: true,
+      },
+      limit: pageSize,
+      offset: offset,
+      orderBy: [desc(companies.createdAt)],
+    }),
+    db.select({ id: applications.id, name: applications.name })
+      .from(applications)
+      .where(eq(applications.isActive, true))
+  ]);
 
-  const apps = await db.select({ id: applications.id, name: applications.name })
-    .from(applications)
-    .where(eq(applications.isActive, true));
+  const totalCompanies = totalCountResult[0]?.total || 0;
+  const totalPages = Math.ceil(totalCompanies / pageSize);
 
   return (
     <PageContainer>
@@ -140,6 +151,53 @@ export default async function CompaniesPage({
           </Table>
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Página {page} de {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                asChild={page > 1}
+              >
+                {page > 1 ? (
+                  <Link
+                    href={`/dashboard/companies?page=${page - 1}&q=${search}`}
+                  >
+                    Anterior
+                  </Link>
+                ) : (
+                  <span>Anterior</span>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                asChild={page < totalPages}
+              >
+                {page < totalPages ? (
+                  <Link
+                    href={`/dashboard/companies?page=${page + 1}&q=${search}`}
+                  >
+                    Próximo
+                  </Link>
+                ) : (
+                  <span>Próximo</span>
+                )}
+              </Button>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground text-center border-t pt-4">
+            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalCompanies)} de {totalCompanies} empresa(s).
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }
