@@ -75,7 +75,7 @@ export function UserPermissionsModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative min-h-[180px] space-y-4 border-t pt-4">
+        <div className="relative min-h-[180px] max-h-[60vh] overflow-y-auto space-y-4 border-t pt-4 pr-2">
           {isLoading && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
               <Loader2 className="animate-spin text-primary" />

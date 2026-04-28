@@ -157,7 +157,7 @@ export function ApplicationActions({ app }: { app: Application }) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
             {app.modules.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Nenhum modulo cadastrado.

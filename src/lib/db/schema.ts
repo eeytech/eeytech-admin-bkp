@@ -19,7 +19,7 @@ export const ticketMessageSourceEnum = core.enum("ticket_message_source", [
 
 export const systemSettings = core.table("system_settings", {
   id: uuid("id").primaryKey().defaultRandom(),
-  instanceName: text("instance_name").notNull().default("Admin Eeytech"),
+  instanceName: text("instance_name").notNull().default("eeyCore"),
   apiUrl: text("api_url").notNull().default("https://api.eeytech.com.br"),
   sessionTimeout: text("session_timeout").notNull().default("15"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

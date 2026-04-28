@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 
-const DEFAULT_INSTANCE_NAME = "Admin Eeytech";
+const DEFAULT_INSTANCE_NAME = "eeyCore";
 const DEFAULT_API_URL = "https://api.eeytech.com.br";
 const DEFAULT_SESSION_TIMEOUT_MINUTES = 15;
 const MAX_SESSION_TIMEOUT_MINUTES = 24 * 60;
