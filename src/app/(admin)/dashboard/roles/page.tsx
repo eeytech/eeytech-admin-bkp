@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { PageShell } from "@/components/admin/page-shell";
 import { CreateRoleModal } from "@/components/admin/create-role-modal";
 import { RolePermissionsButton } from "./_components/role-permissions-button";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

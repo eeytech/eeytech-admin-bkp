@@ -38,7 +38,8 @@ const contractSchema = z.object({
   documentUrl: z.string().url("URL inválida").optional().or(z.literal("")),
 });
 
-type ContractFormValues = z.infer<typeof contractSchema>;
+type ContractFormInput = z.input<typeof contractSchema>;
+type ContractFormValues = z.output<typeof contractSchema>;
 
 interface CreateContractModalProps {
   companyId: string;
@@ -47,7 +48,7 @@ interface CreateContractModalProps {
 export function CreateContractModal({ companyId }: CreateContractModalProps) {
   const [open, setOpen] = useState(false);
 
-  const form = useForm<ContractFormValues>({
+  const form = useForm<ContractFormInput, unknown, ContractFormValues>({
     resolver: zodResolver(contractSchema),
     defaultValues: {
       companyId,

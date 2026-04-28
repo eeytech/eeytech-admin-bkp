@@ -39,7 +39,8 @@ const paymentSchema = z.object({
   description: z.string().optional(),
 });
 
-type PaymentFormValues = z.infer<typeof paymentSchema>;
+type PaymentFormInput = z.input<typeof paymentSchema>;
+type PaymentFormValues = z.output<typeof paymentSchema>;
 
 interface CreatePaymentModalProps {
   companyId: string;
@@ -48,7 +49,7 @@ interface CreatePaymentModalProps {
 export function CreatePaymentModal({ companyId }: CreatePaymentModalProps) {
   const [open, setOpen] = useState(false);
 
-  const form = useForm<PaymentFormValues>({
+  const form = useForm<PaymentFormInput, unknown, PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
       companyId,
