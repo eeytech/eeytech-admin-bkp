@@ -3,21 +3,27 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
-  LayoutDashboard,
-  Users,
-  Globe,
-  Ticket,
-  Settings,
-  ShieldCheck,
+  BanknoteArrowDown,
+  Blocks,
   Building2,
   ChevronLeft,
-  Menu,
-  User,
-  LogOut,
+  FileText,
+  Globe,
+  Landmark,
   Loader2,
+  LogOut,
+  Menu,
+  Receipt,
+  Settings,
+  ShieldCheck,
+  Ticket,
+  User,
+  Users,
 } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,15 +33,45 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
 
-const menuItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Aplicações", href: "/dashboard/applications", icon: Globe },
-  { name: "Empresas", href: "/dashboard/companies", icon: Building2 },
-  { name: "Usuários", href: "/dashboard/users", icon: Users },
-  { name: "Chamados", href: "/dashboard/tickets", icon: Ticket },
-  { name: "Perfis", href: "/dashboard/roles", icon: ShieldCheck },
+type NavItem = {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+};
+
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+const navigationGroups: NavGroup[] = [
+  {
+    label: "CRM & Gestão",
+    items: [
+      { name: "Dashboard Financeiro", href: "/dashboard/finance", icon: Landmark },
+      { name: "Empresas", href: "/dashboard/companies", icon: Building2 },
+      { name: "Contratos", href: "/dashboard/contracts", icon: FileText },
+      { name: "Receitas", href: "/dashboard/payments", icon: BanknoteArrowDown },
+      { name: "Despesas", href: "/dashboard/expenses", icon: Receipt },
+    ],
+  },
+  {
+    label: "Acessos & SSO",
+    items: [
+      { name: "Painel SSO", href: "/dashboard", icon: Blocks },
+      { name: "Aplicações", href: "/dashboard/applications", icon: Globe },
+      { name: "Perfis de Acesso", href: "/dashboard/roles", icon: ShieldCheck },
+      { name: "Usuários", href: "/dashboard/users", icon: Users },
+    ],
+  },
+  {
+    label: "Suporte",
+    items: [{ name: "Chamados", href: "/dashboard/tickets", icon: Ticket }],
+  },
+];
+
+const utilityItems: NavItem[] = [
   { name: "Configurações", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -62,6 +98,7 @@ export function AdminSidebar() {
         // no-op
       }
     }
+
     void loadSession();
   }, []);
 
@@ -87,89 +124,170 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        "sticky top-0 z-40 flex h-screen flex-col border-r bg-card transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-16" : "w-64",
+        "sticky top-0 z-40 flex h-screen flex-col border-r border-zinc-200/80 bg-white transition-all duration-300 ease-in-out",
+        isCollapsed ? "w-[84px]" : "w-[292px]",
       )}
     >
-      <div className={cn("flex items-center justify-between p-4", isCollapsed ? "flex-col gap-4" : "p-6")}>
-        {!isCollapsed && (
-          <h1 className="text-xl font-bold tracking-tight text-primary truncate">
-            {instanceName}
-          </h1>
+      <div
+        className={cn(
+          "border-b border-zinc-200/80 px-4 py-5",
+          isCollapsed ? "flex flex-col items-center gap-4" : "px-5",
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={cn("h-8 w-8", isCollapsed && "mt-2")}
-        >
-          {isCollapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
-        </Button>
+      >
+        <div className={cn("flex items-center justify-between", isCollapsed && "w-full flex-col gap-4")}>
+          {!isCollapsed && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-300 bg-zinc-950 text-sm font-semibold text-white">
+                  EY
+                </div>
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                    eeyTech
+                  </p>
+                  <h1 className="text-lg font-semibold tracking-tight text-zinc-950">
+                    {instanceName}
+                  </h1>
+                </div>
+              </div>
+              <p className="text-xs text-zinc-500">
+                CRM, identidade e suporte em um único painel.
+              </p>
+            </div>
+          )}
+
+          {isCollapsed && (
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-300 bg-zinc-950 text-sm font-semibold text-white">
+              EY
+            </div>
+          )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="h-9 w-9 rounded-xl text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+          >
+            {isCollapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
+          </Button>
+        </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3">
-        {menuItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={isCollapsed ? item.name : ""}
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <div className="space-y-5">
+          {navigationGroups.map((group) => (
+            <div key={group.label} className="space-y-2">
+              {!isCollapsed && (
+                <div className="px-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">
+                    {group.label}
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const isActive =
+                    pathname === item.href || pathname?.startsWith(`${item.href}/`);
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={isCollapsed ? item.name : ""}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all",
+                        isActive
+                          ? "bg-zinc-950 text-white shadow-[0_14px_30px_-18px_rgba(9,9,11,0.55)]"
+                          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
+                        isCollapsed && "justify-center px-0",
+                      )}
+                    >
+                      <item.icon size={18} className="shrink-0" />
+                      {!isCollapsed && (
+                        <span className="truncate font-medium">{item.name}</span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 border-t border-dashed border-zinc-200 pt-4">
+          <div className="space-y-1">
+            {utilityItems.map((item) => {
+              const isActive =
+                pathname === item.href || pathname?.startsWith(`${item.href}/`);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={isCollapsed ? item.name : ""}
+                  className={cn(
+                    "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all",
+                    isActive
+                      ? "bg-zinc-950 text-white shadow-[0_14px_30px_-18px_rgba(9,9,11,0.55)]"
+                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
+                    isCollapsed && "justify-center px-0",
+                  )}
+                >
+                  <item.icon size={18} className="shrink-0" />
+                  {!isCollapsed && <span className="truncate font-medium">{item.name}</span>}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+
+      <div className={cn("border-t border-zinc-200/80 p-4", isCollapsed && "px-2")}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                "flex w-full items-center justify-start gap-3 rounded-2xl px-2 py-6 hover:bg-zinc-100",
                 isCollapsed && "justify-center px-0",
               )}
             >
-              <item.icon size={20} className="shrink-0" />
-              {!isCollapsed && (
-                <span className="text-sm font-medium truncate">{item.name}</span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className={cn("border-t p-4 mt-auto", isCollapsed && "px-2")}>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              className={cn(
-                "w-full flex items-center justify-start gap-3 px-2 py-6 hover:bg-accent",
-                isCollapsed && "justify-center px-0"
-              )}
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold border border-primary/20">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-100 text-zinc-700">
                 <User size={18} />
               </div>
               {!isCollapsed && (
-                <div className="flex flex-col items-start truncate overflow-hidden">
-                  <span className="text-sm font-semibold text-foreground truncate w-full text-left">
-                    Meu Perfil
+                <div className="flex min-w-0 flex-col items-start">
+                  <span className="w-full truncate text-sm font-semibold text-zinc-950">
+                    Minha conta
                   </span>
-                  <span className="text-xs text-muted-foreground truncate w-full text-left">
+                  <span className="w-full truncate text-xs text-zinc-500">
                     {userEmail || "Carregando..."}
                   </span>
                 </div>
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align={isCollapsed ? "center" : "start"} side={isCollapsed ? "right" : "top"} className="w-56">
-            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+          <DropdownMenuContent
+            align={isCollapsed ? "center" : "start"}
+            side={isCollapsed ? "right" : "top"}
+            className="w-56"
+          >
+            <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push("/dashboard/profile")} className="cursor-pointer">
+            <DropdownMenuItem
+              onClick={() => router.push("/dashboard/profile")}
+              className="cursor-pointer"
+            >
               <User size={14} className="mr-2" />
               Perfil
             </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer">
-              Logs de Acesso
+              Logs de acesso
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="text-destructive focus:bg-destructive focus:text-destructive-foreground cursor-pointer"
+              className="cursor-pointer text-destructive focus:bg-destructive focus:text-destructive-foreground"
               onClick={handleLogout}
               disabled={isLoggingOut}
             >

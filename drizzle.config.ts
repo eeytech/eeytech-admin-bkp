@@ -5,7 +5,7 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    url: process.env.DATABASE_URL_DIRECT ?? process.env.DATABASE_URL!,
   },
   schemaFilter: ["core"], // Isola as tabelas no schema core
 });

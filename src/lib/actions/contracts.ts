@@ -1,23 +1,50 @@
 "use server";
 
+import { desc, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { createSafeActionClient } from "next-safe-action";
 import { z } from "zod";
-import { eq, desc } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+
 import { db } from "@/lib/db";
 import { contracts } from "@/lib/db/schema";
 import { requireModulePermission } from "@/lib/permissions/mbac";
 
 const actionClient = createSafeActionClient();
 
+function parseDateInput(value: string) {
+  return new Date(`${value}T12:00:00`);
+}
+
+const moneySchema = z
+  .string()
+  .min(1, "Valor é obrigatório")
+  .refine((value) => /^\d+(\.\d{1,2})?$/.test(value), "Valor monetário inválido");
+
 const contractSchema = z.object({
   companyId: z.string().uuid(),
   title: z.string().min(2, "Título deve ter ao menos 2 caracteres"),
-  status: z.enum(["active", "expired", "terminated"]).default("active"),
-  startDate: z.string().transform((str) => new Date(str)),
-  endDate: z.string().optional().transform((str) => str ? new Date(str) : null),
-  documentUrl: z.string().url("URL inválida").optional().or(z.literal("")),
+  amount: moneySchema,
+  status: z.enum(["Ativo", "Cancelado", "Inadimplente"]).default("Ativo"),
+  startDate: z.string().min(1, "Data de início é obrigatória").transform(parseDateInput),
+  dueDate: z.string().min(1, "Data de vencimento é obrigatória").transform(parseDateInput),
+  endDate: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => (value ? parseDateInput(value) : null)),
+  documentUrl: z
+    .string()
+    .url("URL inválida")
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => value || null),
 });
+
+function revalidateContractPaths(companyId: string) {
+  revalidatePath("/dashboard/contracts");
+  revalidatePath("/dashboard/finance");
+  revalidatePath(`/dashboard/companies/${companyId}`);
+}
 
 export const createContractAction = actionClient
   .schema(contractSchema)
@@ -29,7 +56,7 @@ export const createContractAction = actionClient
       updatedAt: new Date(),
     });
 
-    revalidatePath(`/dashboard/companies/${parsedInput.companyId}`);
+    revalidateContractPaths(parsedInput.companyId);
     return { success: true };
   });
 
@@ -40,25 +67,31 @@ export const updateContractAction = actionClient
 
     const { id, ...data } = parsedInput;
 
-    await db.update(contracts)
+    await db
+      .update(contracts)
       .set({
         ...data,
         updatedAt: new Date(),
       })
       .where(eq(contracts.id, id));
 
-    revalidatePath(`/dashboard/companies/${data.companyId}`);
+    revalidateContractPaths(data.companyId);
     return { success: true };
   });
 
 export const deleteContractAction = actionClient
-  .schema(z.object({ id: z.string().uuid(), companyId: z.string().uuid() }))
+  .schema(
+    z.object({
+      id: z.string().uuid(),
+      companyId: z.string().uuid(),
+    }),
+  )
   .action(async ({ parsedInput }) => {
     await requireModulePermission("companies", "WRITE", "eeytech-admin");
 
     await db.delete(contracts).where(eq(contracts.id, parsedInput.id));
 
-    revalidatePath(`/dashboard/companies/${parsedInput.companyId}`);
+    revalidateContractPaths(parsedInput.companyId);
     return { success: true };
   });
 

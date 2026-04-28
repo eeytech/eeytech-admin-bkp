@@ -1,13 +1,13 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Plus } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
-import { toast } from "sonner";
 import { NumericFormat } from "react-number-format";
+import { useAction } from "next-safe-action/hooks";
+import { z } from "zod";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,11 +32,13 @@ import { createPaymentAction } from "@/lib/actions/payments";
 
 const paymentSchema = z.object({
   companyId: z.string().uuid(),
+  contractId: z.string().optional(),
   amount: z.string().min(1, "Valor é obrigatório"),
-  status: z.enum(["paid", "pending", "overdue", "canceled"]).default("pending"),
+  status: z.enum(["Pendente", "Pago", "Vencido", "Cancelado"]).default("Pendente"),
   dueDate: z.string().min(1, "Data de vencimento é obrigatória"),
   paidAt: z.string().optional().nullable(),
   description: z.string().optional(),
+  referenceMonth: z.string().optional(),
 });
 
 type PaymentFormInput = z.input<typeof paymentSchema>;
@@ -44,31 +46,39 @@ type PaymentFormValues = z.output<typeof paymentSchema>;
 
 interface CreatePaymentModalProps {
   companyId: string;
+  contracts: { id: string; title: string; status: string }[];
 }
 
-export function CreatePaymentModal({ companyId }: CreatePaymentModalProps) {
+export function CreatePaymentModal({
+  companyId,
+  contracts,
+}: CreatePaymentModalProps) {
   const [open, setOpen] = useState(false);
+
+  const defaultValues: PaymentFormInput = {
+    companyId,
+    contractId: contracts.find((contract) => contract.status === "Ativo")?.id ?? "",
+    amount: "",
+    status: "Pendente",
+    dueDate: new Date().toISOString().split("T")[0],
+    paidAt: "",
+    description: "Mensalidade",
+    referenceMonth: new Date().toISOString().slice(0, 7),
+  };
 
   const form = useForm<PaymentFormInput, unknown, PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: {
-      companyId,
-      amount: "",
-      status: "pending",
-      dueDate: new Date().toISOString().split("T")[0],
-      paidAt: "",
-      description: "Assinatura Mensal",
-    },
+    defaultValues,
   });
 
   const { execute, isExecuting } = useAction(createPaymentAction, {
     onSuccess: () => {
-      toast.success("Pagamento registrado com sucesso!");
+      toast.success("Recebível registrado com sucesso!");
       setOpen(false);
-      form.reset();
+      form.reset(defaultValues);
     },
     onError: ({ error }) => {
-      toast.error(error.serverError || "Erro ao registrar pagamento");
+      toast.error(error.serverError || "Erro ao registrar recebível");
     },
   });
 
@@ -81,19 +91,57 @@ export function CreatePaymentModal({ companyId }: CreatePaymentModalProps) {
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
           <Plus className="mr-2 h-4 w-4" />
-          Registrar Pagamento
+          Nova receita
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[640px]">
         <DialogHeader>
-          <DialogTitle>Registrar Pagamento</DialogTitle>
+          <DialogTitle>Novo recebível</DialogTitle>
           <DialogDescription>
-            Adicione uma nova fatura ou registro de pagamento para esta empresa.
+            Cadastre uma mensalidade paga ou pendente vinculada a este cliente.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="contractId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contrato vinculado</FormLabel>
+                    <select
+                      {...field}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Sem vínculo específico</option>
+                      {contracts.map((contract) => (
+                        <option key={contract.id} value={contract.id}>
+                          {contract.title}
+                        </option>
+                      ))}
+                    </select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="referenceMonth"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Competência</FormLabel>
+                    <FormControl>
+                      <Input type="month" {...field} value={field.value ?? ""} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
               name="description"
@@ -101,20 +149,20 @@ export function CreatePaymentModal({ companyId }: CreatePaymentModalProps) {
                 <FormItem>
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Assinatura Mensal - Março/2024" {...field} />
+                    <Input placeholder="Ex: Mensalidade de abril/2026" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor (R$)</FormLabel>
+                    <FormLabel>Valor</FormLabel>
                     <FormControl>
                       <NumericFormat
                         customInput={Input}
@@ -123,8 +171,14 @@ export function CreatePaymentModal({ companyId }: CreatePaymentModalProps) {
                         prefix="R$ "
                         decimalScale={2}
                         fixedDecimalScale
-                        onValueChange={(values) => field.onChange(values.floatValue?.toString())}
                         value={field.value}
+                        onValueChange={(values) =>
+                          field.onChange(
+                            typeof values.floatValue === "number"
+                              ? values.floatValue.toFixed(2)
+                              : "",
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -140,12 +194,12 @@ export function CreatePaymentModal({ companyId }: CreatePaymentModalProps) {
                     <FormLabel>Status</FormLabel>
                     <select
                       {...field}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
-                      <option value="pending">Pendente</option>
-                      <option value="paid">Pago</option>
-                      <option value="overdue">Atrasado</option>
-                      <option value="canceled">Cancelado</option>
+                      <option value="Pendente">Pendente</option>
+                      <option value="Pago">Pago</option>
+                      <option value="Vencido">Vencido</option>
+                      <option value="Cancelado">Cancelado</option>
                     </select>
                     <FormMessage />
                   </FormItem>
@@ -153,13 +207,13 @@ export function CreatePaymentModal({ companyId }: CreatePaymentModalProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="dueDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Data de Vencimento</FormLabel>
+                    <FormLabel>Data de vencimento</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -171,11 +225,11 @@ export function CreatePaymentModal({ companyId }: CreatePaymentModalProps) {
               <FormField
                 control={form.control}
                 name="paidAt"
-                render={({ field: { value, ...field } }) => (
+                render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Data de Pagamento (Opcional)</FormLabel>
+                    <FormLabel>Data de pagamento</FormLabel>
                     <FormControl>
-                      <Input type="date" value={value || ""} {...field} />
+                      <Input type="date" {...field} value={field.value ?? ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -184,8 +238,11 @@ export function CreatePaymentModal({ companyId }: CreatePaymentModalProps) {
             </div>
 
             <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancelar
+              </Button>
               <Button type="submit" disabled={isExecuting} className="bg-primary/95">
-                {isExecuting ? "Salvando..." : "Registrar Pagamento"}
+                {isExecuting ? "Salvando..." : "Registrar recebível"}
               </Button>
             </DialogFooter>
           </form>

@@ -80,6 +80,8 @@ async function main() {
 
     const defaultCompany = await ensureDefaultCompany(adminApp.id);
 
+    await ensureModule(adminApp.id, "Empresas", "companies");
+    await ensureModule(adminApp.id, "Financeiro", "finance");
     await ensureModule(adminApp.id, "Usuarios", "users");
     await ensureModule(adminApp.id, "Aplicacoes", "applications");
     await ensureModule(adminApp.id, "Perfis", "roles");
@@ -118,6 +120,8 @@ async function main() {
 
     await db.delete(rolePermissions).where(eq(rolePermissions.roleId, adminRole.id));
     await db.insert(rolePermissions).values([
+      { roleId: adminRole.id, moduleSlug: "companies", actions: ["FULL"] },
+      { roleId: adminRole.id, moduleSlug: "finance", actions: ["FULL"] },
       { roleId: adminRole.id, moduleSlug: "users", actions: ["FULL"] },
       { roleId: adminRole.id, moduleSlug: "applications", actions: ["FULL"] },
       { roleId: adminRole.id, moduleSlug: "roles", actions: ["FULL"] },

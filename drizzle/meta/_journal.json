@@ -50,6 +50,13 @@
       "when": 1774955474765,
       "tag": "0006_romantic_the_executioner",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777410197855,
+      "tag": "0007_add_crm_finance_module",
+      "breakpoints": true
     }
   ]
 }

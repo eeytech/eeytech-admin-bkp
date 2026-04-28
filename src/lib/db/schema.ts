@@ -1,20 +1,44 @@
-﻿import {
-  pgSchema,
+import {
   pgEnum,
+  pgSchema,
   uuid,
   text,
   timestamp,
   varchar,
   boolean,
+  numeric,
   primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const core = pgSchema("core");
 
-export const ticketMessageSourceEnum = core.enum("ticket_message_source", [
+export const ticketMessageSourceEnum = pgEnum("ticket_message_source", [
   "user",
   "support",
+]);
+
+export const contractStatusEnum = pgEnum("contract_status", [
+  "Ativo",
+  "Cancelado",
+  "Inadimplente",
+]);
+
+export const paymentStatusEnum = pgEnum("payment_status", [
+  "Pendente",
+  "Pago",
+  "Vencido",
+  "Cancelado",
+]);
+
+export const expenseCategoryEnum = pgEnum("expense_category", [
+  "Infraestrutura",
+  "APIs",
+  "Operacional",
+  "Marketing",
+  "Pessoal",
+  "Tributos",
+  "Outros",
 ]);
 
 export const systemSettings = core.table("system_settings", {
@@ -36,14 +60,12 @@ export const applications = core.table("applications", {
 
 export const companies = core.table("companies", {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(), // Razão Social
-  tradeName: text("trade_name"), // Nome Fantasia
+  name: text("name").notNull(),
+  tradeName: text("trade_name"),
   cnpj: varchar("cnpj", { length: 18 }),
   email: text("email"),
   phone: varchar("phone", { length: 20 }),
   status: varchar("status", { length: 20 }).default("active").notNull(),
-
-  // Endereço
   zipCode: varchar("zip_code", { length: 9 }),
   street: text("street"),
   number: varchar("number", { length: 20 }),
@@ -51,7 +73,6 @@ export const companies = core.table("companies", {
   neighborhood: text("neighborhood"),
   city: text("city"),
   state: varchar("state", { length: 2 }),
-
   applicationId: uuid("application_id")
     .references(() => applications.id, { onDelete: "cascade" })
     .notNull(),
@@ -65,8 +86,10 @@ export const contracts = core.table("contracts", {
     .references(() => companies.id, { onDelete: "cascade" })
     .notNull(),
   title: text("title").notNull(),
-  status: varchar("status", { length: 20 }).default("active").notNull(), // active, expired, terminated
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  status: contractStatusEnum("status").default("Ativo").notNull(),
   startDate: timestamp("start_date").notNull(),
+  dueDate: timestamp("due_date").notNull(),
   endDate: timestamp("end_date"),
   documentUrl: text("document_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -78,11 +101,25 @@ export const payments = core.table("payments", {
   companyId: uuid("company_id")
     .references(() => companies.id, { onDelete: "cascade" })
     .notNull(),
-  amount: text("amount").notNull(), // Armazenado como string para evitar problemas de precisão/moeda
-  status: varchar("status", { length: 20 }).default("pending").notNull(), // paid, pending, overdue, canceled
+  contractId: uuid("contract_id").references(() => contracts.id, {
+    onDelete: "set null",
+  }),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  status: paymentStatusEnum("status").default("Pendente").notNull(),
   dueDate: timestamp("due_date").notNull(),
   paidAt: timestamp("paid_at"),
   description: text("description"),
+  referenceMonth: varchar("reference_month", { length: 7 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const expenses = core.table("expenses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  description: text("description").notNull(),
+  category: expenseCategoryEnum("category").default("Outros").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  expenseDate: timestamp("expense_date").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -121,8 +158,10 @@ export const userModulePermissions = core.table(
     moduleSlug: text("module_slug").notNull(),
     actions: text("actions").array().notNull(),
   },
-  (t) => ({
-    pk: primaryKey({ columns: [t.userId, t.applicationId, t.moduleSlug] }),
+  (table) => ({
+    pk: primaryKey({
+      columns: [table.userId, table.applicationId, table.moduleSlug],
+    }),
   }),
 );
 
@@ -156,8 +195,8 @@ export const userRoles = core.table(
       .references(() => roles.id, { onDelete: "cascade" })
       .notNull(),
   },
-  (t) => ({
-    pk: primaryKey({ columns: [t.userId, t.roleId] }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.roleId] }),
   }),
 );
 
@@ -172,8 +211,8 @@ export const userCompanies = core.table(
       .notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (t) => ({
-    pk: primaryKey({ columns: [t.userId, t.companyId] }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.companyId] }),
   }),
 );
 
@@ -341,11 +380,12 @@ export const companiesRelations = relations(companies, ({ one, many }) => ({
   payments: many(payments),
 }));
 
-export const contractsRelations = relations(contracts, ({ one }) => ({
+export const contractsRelations = relations(contracts, ({ one, many }) => ({
   company: one(companies, {
     fields: [contracts.companyId],
     references: [companies.id],
   }),
+  payments: many(payments),
 }));
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
@@ -353,5 +393,8 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
     fields: [payments.companyId],
     references: [companies.id],
   }),
+  contract: one(contracts, {
+    fields: [payments.contractId],
+    references: [contracts.id],
+  }),
 }));
-

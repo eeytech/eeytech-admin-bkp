@@ -2,34 +2,65 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { useState } from "react";
 import {
-  LayoutDashboard,
-  Users,
+  BanknoteArrowDown,
+  Blocks,
+  Building2,
+  FileText,
   Globe,
-  Ticket,
+  Landmark,
+  Menu,
+  Receipt,
   Settings,
   ShieldCheck,
-  Menu,
-  Building2,
+  Ticket,
+  Users,
 } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetTrigger,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
-import { useState } from "react";
 
-const menuItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Aplicações", href: "/dashboard/applications", icon: Globe },
-  { name: "Empresas", href: "/dashboard/companies", icon: Building2 },
-  { name: "Usuários", href: "/dashboard/users", icon: Users },
-  { name: "Chamados", href: "/dashboard/tickets", icon: Ticket },
-  { name: "Perfis", href: "/dashboard/roles", icon: ShieldCheck },
+type MenuItem = {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+};
+
+const navigationGroups: { label: string; items: MenuItem[] }[] = [
+  {
+    label: "CRM & Gestão",
+    items: [
+      { name: "Dashboard Financeiro", href: "/dashboard/finance", icon: Landmark },
+      { name: "Empresas", href: "/dashboard/companies", icon: Building2 },
+      { name: "Contratos", href: "/dashboard/contracts", icon: FileText },
+      { name: "Receitas", href: "/dashboard/payments", icon: BanknoteArrowDown },
+      { name: "Despesas", href: "/dashboard/expenses", icon: Receipt },
+    ],
+  },
+  {
+    label: "Acessos & SSO",
+    items: [
+      { name: "Painel SSO", href: "/dashboard", icon: Blocks },
+      { name: "Aplicações", href: "/dashboard/applications", icon: Globe },
+      { name: "Perfis de Acesso", href: "/dashboard/roles", icon: ShieldCheck },
+      { name: "Usuários", href: "/dashboard/users", icon: Users },
+    ],
+  },
+  {
+    label: "Suporte",
+    items: [{ name: "Chamados", href: "/dashboard/tickets", icon: Ticket }],
+  },
+];
+
+const utilityItems: MenuItem[] = [
   { name: "Configurações", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -38,48 +69,98 @@ export function AppSidebar() {
   const [open, setOpen] = useState(false);
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-white">
-      <div className="p-6">
-        <Link href="/dashboard" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <div className="size-8 rounded-lg bg-primary/95 flex items-center justify-center text-primary-foreground font-bold">
-            E
+    <div className="flex h-full flex-col bg-white">
+      <div className="border-b border-zinc-200/80 p-6">
+        <Link
+          href="/dashboard/finance"
+          className="flex items-center gap-3"
+          onClick={() => setOpen(false)}
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-300 bg-zinc-950 text-sm font-semibold text-white">
+            EY
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-zinc-900">
-            Eeytech Admin
-          </h1>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              eeyTech
+            </p>
+            <h1 className="text-lg font-semibold tracking-tight text-zinc-950">
+              Admin
+            </h1>
+          </div>
         </Link>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1">
-        {menuItems.map((item) => {
-          const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                isActive
-                  ? "bg-primary/95 text-primary-foreground shadow-sm"
-                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-              )}
-            >
-              <item.icon size={18} />
-              <span>{item.name}</span>
-            </Link>
-          );
-        })}
+      <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
+        {navigationGroups.map((group) => (
+          <div key={group.label} className="space-y-2">
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-400">
+              {group.label}
+            </p>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const isActive =
+                  pathname === item.href || pathname?.startsWith(`${item.href}/`);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-all",
+                      isActive
+                        ? "bg-zinc-950 text-white shadow-[0_14px_30px_-18px_rgba(9,9,11,0.55)]"
+                        : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
+                    )}
+                  >
+                    <item.icon size={18} />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        <div className="border-t border-dashed border-zinc-200 pt-4">
+          <div className="space-y-1">
+            {utilityItems.map((item) => {
+              const isActive =
+                pathname === item.href || pathname?.startsWith(`${item.href}/`);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-all",
+                    isActive
+                      ? "bg-zinc-950 text-white shadow-[0_14px_30px_-18px_rgba(9,9,11,0.55)]"
+                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
+                  )}
+                >
+                  <item.icon size={18} />
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </nav>
 
-      <div className="p-4 border-t border-zinc-100">
-        <div className="flex items-center gap-3 px-3 py-2">
-          <div className="size-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-600 font-semibold text-xs">
-            JD
+      <div className="border-t border-zinc-200/80 p-4">
+        <div className="flex items-center gap-3 rounded-2xl px-3 py-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-100 text-sm font-semibold text-zinc-700">
+            EA
           </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-sm font-medium text-zinc-900 truncate">Usuário Admin</span>
-            <span className="text-xs text-zinc-500 truncate">admin@eeytech.com</span>
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-sm font-medium text-zinc-950">
+              Equipe Admin
+            </span>
+            <span className="truncate text-xs text-zinc-500">
+              admin@eeytech.com.br
+            </span>
           </div>
         </div>
       </div>
@@ -88,36 +169,33 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 border-r border-zinc-100 bg-white">
+      <aside className="hidden h-screen w-72 sticky top-0 border-r border-zinc-200/80 bg-white md:flex md:flex-col">
         <SidebarContent />
       </aside>
 
-      {/* Mobile Sidebar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 border-b border-zinc-100 bg-white/80 backdrop-blur-md z-40 px-4 flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="size-8 rounded-lg bg-primary/95 flex items-center justify-center text-primary-foreground font-bold">
-            E
+      <div className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-zinc-200/80 bg-white/90 px-4 backdrop-blur-md md:hidden">
+        <Link href="/dashboard/finance" className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-zinc-300 bg-zinc-950 text-sm font-semibold text-white">
+            EY
           </div>
-          <span className="font-bold text-zinc-900">Eeytech</span>
+          <span className="font-semibold text-zinc-950">eeyTech Admin</span>
         </Link>
 
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-zinc-600">
-              <Menu size={24} />
+            <Button variant="ghost" size="icon" className="text-zinc-700">
+              <Menu size={22} />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-64 border-r-0">
+          <SheetContent side="left" className="w-72 border-r-0 p-0">
             <SheetHeader className="sr-only">
-                <SheetTitle>Menu de Navegação</SheetTitle>
+              <SheetTitle>Menu de navegação</SheetTitle>
             </SheetHeader>
             <SidebarContent />
           </SheetContent>
         </Sheet>
       </div>
-      {/* Spacer for mobile fixed header */}
-      <div className="md:hidden h-16" />
+      <div className="h-16 md:hidden" />
     </>
   );
 }
