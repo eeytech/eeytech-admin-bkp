@@ -85,6 +85,28 @@ export const updateCompanyAction = actionClient
     return { success: true };
   });
 
+export const toggleCompanyStatusAction = actionClient
+  .schema(z.object({
+    id: z.string().uuid(),
+    applicationId: z.string().uuid(),
+    status: companyStatusSchema,
+  }))
+  .action(async ({ parsedInput }) => {
+    await requireModulePermission("companies", "WRITE", "eeytech-admin");
+
+    await db
+      .update(companies)
+      .set({
+        status: parsedInput.status,
+        updatedAt: new Date(),
+      })
+      .where(eq(companies.id, parsedInput.id));
+
+    revalidatePath("/dashboard/companies");
+    revalidatePath(`/dashboard/applications/${parsedInput.applicationId}/companies`);
+    return { success: true };
+  });
+
 export const deleteCompanyAction = actionClient
   .schema(z.object({ id: z.string().uuid(), applicationId: z.string().uuid() }))
   .action(async ({ parsedInput }) => {

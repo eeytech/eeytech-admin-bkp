@@ -142,7 +142,7 @@ export function CompaniesManager({
     if (!editingCompany) return;
 
     updateCompany({
-      companyId: editingCompany.id,
+      id: editingCompany.id,
       applicationId,
       name: values.name,
       cnpj: values.cnpj,
@@ -272,7 +272,7 @@ export function CompaniesManager({
                         disabled={isToggling}
                         onClick={() =>
                           toggleStatus({
-                            companyId: company.id,
+                            id: company.id,
                             applicationId,
                             status: company.status === "active" ? "inactive" : "active",
                           })
@@ -289,7 +289,7 @@ export function CompaniesManager({
                         disabled={isDeleting}
                         onClick={() => {
                           if (confirm(`Excluir a empresa ${company.name}?`)) {
-                            deleteCompany({ companyId: company.id, applicationId });
+                            deleteCompany({ id: company.id, applicationId });
                           }
                         }}
                       >
