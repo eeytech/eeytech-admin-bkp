@@ -190,5 +190,3 @@ export default async function CompaniesPage({
     </PageShell>
   );
 }
-  );
-}

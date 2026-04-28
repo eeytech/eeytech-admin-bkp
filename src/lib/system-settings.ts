@@ -25,11 +25,20 @@ export function parseSessionTimeoutMinutes(
 }
 
 export async function getSystemSettings(): Promise<ResolvedSystemSettings> {
-  const settings = await db.query.systemSettings.findFirst();
+  try {
+    const settings = await db.query.systemSettings.findFirst();
 
-  return {
-    instanceName: settings?.instanceName ?? DEFAULT_INSTANCE_NAME,
-    apiUrl: settings?.apiUrl ?? DEFAULT_API_URL,
-    sessionTimeoutMinutes: parseSessionTimeoutMinutes(settings?.sessionTimeout),
-  };
+    return {
+      instanceName: settings?.instanceName ?? DEFAULT_INSTANCE_NAME,
+      apiUrl: settings?.apiUrl ?? DEFAULT_API_URL,
+      sessionTimeoutMinutes: parseSessionTimeoutMinutes(settings?.sessionTimeout),
+    };
+  } catch (error) {
+    console.warn("Falha ao carregar configurações do sistema, usando padrões:", error);
+    return {
+      instanceName: DEFAULT_INSTANCE_NAME,
+      apiUrl: DEFAULT_API_URL,
+      sessionTimeoutMinutes: DEFAULT_SESSION_TIMEOUT_MINUTES,
+    };
+  }
 }
