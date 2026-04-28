@@ -1,4 +1,4 @@
-﻿export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 
 import { and, desc, eq, ilike, or, count } from "drizzle-orm";
 import dayjs from "dayjs";
@@ -92,8 +92,8 @@ export default async function UsersPage({
 
   return (
     <PageShell
-      title="Gestao de Usuarios"
-      description="Usuarios pertencem a uma aplicacao, usam perfis e possuem escopo por empresas."
+      title="Gestão de Usuários"
+      description="Usuários pertencem a uma aplicação, usam perfis e possuem escopo por empresas."
       action={
         <CreateUserModal
           applications={activeApplications.map((application) => ({
@@ -114,13 +114,13 @@ export default async function UsersPage({
       }
     >
       <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Input name="q" placeholder="Buscar por nome ou email" defaultValue={q} />
+        <Input name="q" placeholder="Buscar por nome ou e-mail" defaultValue={q} />
         <select
           name="applicationId"
           defaultValue={filterApplicationId}
           className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          <option value="all">Todas as aplicacoes</option>
+          <option value="all">Todas as aplicações</option>
           {allApplications.map((application) => (
             <option key={application.id} value={application.id}>
               {application.name}
@@ -141,7 +141,7 @@ export default async function UsersPage({
             Filtrar
           </Button>
           <Button asChild variant="ghost" className="w-full sm:w-auto">
-            <a href="/dashboard/users">Limpar</a>
+            <Link href="/dashboard/users">Limpar</Link>
           </Button>
         </div>
       </form>
@@ -153,11 +153,11 @@ export default async function UsersPage({
               <TableRow>
                 <TableHead className="min-w-[150px]">Nome</TableHead>
                 <TableHead className="min-w-[180px]">E-mail</TableHead>
-                <TableHead className="min-w-[120px]">Aplicacao</TableHead>
+                <TableHead className="min-w-[120px]">Aplicação</TableHead>
                 <TableHead className="min-w-[150px]">Empresas</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="min-w-[100px]">Criado em</TableHead>
-                <TableHead className="text-right">Acoes</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -167,7 +167,7 @@ export default async function UsersPage({
                     colSpan={7}
                     className="h-24 text-center text-muted-foreground"
                   >
-                    Nenhum usuario encontrado.
+                    Nenhum usuário encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -282,12 +282,8 @@ export default async function UsersPage({
               </Button>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground text-center border-t pt-4">
-            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalUsers)} de {totalUsers} usuário(s).
-          </div>
         </div>
       )}
     </PageShell>
   );
 }
-

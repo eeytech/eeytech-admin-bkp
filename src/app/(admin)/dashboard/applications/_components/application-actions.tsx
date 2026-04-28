@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -51,8 +51,8 @@ export function ApplicationActions({ app }: { app: Application }) {
   const { execute: deleteApp, isPending: isDeleting } = useAction(
     deleteApplicationAction,
     {
-      onSuccess: () => toast.success("Aplicacao excluida"),
-      onError: () => toast.error("Erro ao excluir aplicacao"),
+      onSuccess: () => toast.success("Aplicação excluída"),
+      onError: () => toast.error("Erro ao excluir aplicação"),
     },
   );
 
@@ -62,10 +62,10 @@ export function ApplicationActions({ app }: { app: Application }) {
       onSuccess: () =>
         toast.success(
           app.isActive
-            ? "Aplicacao desativada com sucesso"
-            : "Aplicacao ativada com sucesso",
+            ? "Aplicação desativada com sucesso"
+            : "Aplicação ativada com sucesso",
         ),
-      onError: () => toast.error("Erro ao alterar status da aplicacao"),
+      onError: () => toast.error("Erro ao alterar status da aplicação"),
     },
   );
 
@@ -78,21 +78,21 @@ export function ApplicationActions({ app }: { app: Application }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Gerenciar Aplicacao</DropdownMenuLabel>
+          <DropdownMenuLabel>Gerenciar Aplicação</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
             className="cursor-pointer gap-2"
             onClick={() => setShowModuleModal(true)}
           >
-            <PlusCircle size={14} /> Adicionar Modulo
+            <PlusCircle size={14} /> Adicionar Módulo
           </DropdownMenuItem>
 
           <DropdownMenuItem
             className="cursor-pointer gap-2"
             onClick={() => setShowModulesList(true)}
           >
-            <List size={14} /> Ver Modulos
+            <List size={14} /> Ver Módulos
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="cursor-pointer gap-2">
@@ -103,7 +103,7 @@ export function ApplicationActions({ app }: { app: Application }) {
 
           <DropdownMenuItem asChild className="cursor-pointer gap-2">
             <Link href={`/dashboard/applications/${app.id}/settings`}>
-              <Settings size={14} /> Configuracoes
+              <Settings size={14} /> Configurações
             </Link>
           </DropdownMenuItem>
 
@@ -119,7 +119,7 @@ export function ApplicationActions({ app }: { app: Application }) {
             ) : (
               <Power size={14} />
             )}
-            {app.isActive ? "Desativar Aplicacao" : "Ativar Aplicacao"}
+            {app.isActive ? "Desativar Aplicação" : "Ativar Aplicação"}
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
@@ -130,14 +130,14 @@ export function ApplicationActions({ app }: { app: Application }) {
             onClick={() => {
               if (
                 confirm(
-                  `Tem certeza que deseja excluir "${app.name}"? Esta acao e irreversivel.`,
+                  `Tem certeza que deseja excluir "${app.name}"? Esta ação é irreversível.`,
                 )
               ) {
                 deleteApp({ id: app.id });
               }
             }}
           >
-            <Trash2 size={14} /> {isDeleting ? "Excluindo..." : "Excluir Aplicacao"}
+            <Trash2 size={14} /> {isDeleting ? "Excluindo..." : "Excluir Aplicação"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -151,16 +151,16 @@ export function ApplicationActions({ app }: { app: Application }) {
       <Dialog open={showModulesList} onOpenChange={setShowModulesList}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Modulos de {app.name}</DialogTitle>
+            <DialogTitle>Módulos de {app.name}</DialogTitle>
             <DialogDescription>
-              Lista de modulos cadastrados para esta aplicacao.
+              Lista de módulos cadastrados para esta aplicação.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
             {app.modules.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Nenhum modulo cadastrado.
+                Nenhum módulo cadastrado.
               </p>
             ) : (
               app.modules.map((module) => (
@@ -181,4 +181,3 @@ export function ApplicationActions({ app }: { app: Application }) {
     </>
   );
 }
-

@@ -113,7 +113,7 @@ export function DashboardCharts({
       </div>
 
       <div className="rounded-md border bg-card p-4">
-        <h3 className="mb-3 text-sm font-semibold">Chamados por aplicacao</h3>
+        <h3 className="mb-3 text-sm font-semibold">Chamados por aplicação</h3>
         <div className="space-y-2">
           {byApp.map((item) => (
             <div key={item.name}>
@@ -133,7 +133,7 @@ export function DashboardCharts({
       </div>
 
       <div className="rounded-md border bg-card p-4">
-        <h3 className="mb-3 text-sm font-semibold">Chamados por periodo (30 dias)</h3>
+        <h3 className="mb-3 text-sm font-semibold">Chamados por período (30 dias)</h3>
         <div className="h-40 rounded bg-muted/30 p-2">
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
             <polyline

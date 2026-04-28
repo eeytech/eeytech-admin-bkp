@@ -195,9 +195,6 @@ export default async function RolesPage({
               </Button>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground text-center border-t pt-4">
-            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalRoles)} de {totalRoles} perfis.
-          </div>
         </div>
       )}
     </PageShell>

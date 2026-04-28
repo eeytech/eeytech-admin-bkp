@@ -7,7 +7,7 @@ import { Eye, Search } from "lucide-react";
 
 import { db } from "@/lib/db";
 import { companies, applications } from "@/lib/db/schema";
-import { PageContainer } from "@/components/layout/page-container";
+import { PageShell } from "@/components/admin/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -61,20 +61,12 @@ export default async function CompaniesPage({
   const totalPages = Math.ceil(totalCompanies / pageSize);
 
   return (
-    <PageContainer>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie seus clientes, contratos e pagamentos.
-          </p>
-        </div>
-        <div className="w-full md:w-auto">
-          <CreateCompanyModal applications={apps} />
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
+    <PageShell
+      title="Empresas"
+      description="Gerencie seus clientes, contratos e pagamentos."
+      action={<CreateCompanyModal applications={apps} />}
+    >
+      <div className="flex items-center gap-2 mb-4">
         <form className="relative flex-1 max-w-sm w-full">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -193,11 +185,10 @@ export default async function CompaniesPage({
               </Button>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground text-center border-t pt-4">
-            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalCompanies)} de {totalCompanies} empresa(s).
-          </div>
         </div>
       )}
-    </PageContainer>
+    </PageShell>
+  );
+}
   );
 }

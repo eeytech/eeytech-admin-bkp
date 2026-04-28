@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { MoreVertical, Pencil, Trash2 } from "lucide-react";
@@ -62,8 +62,8 @@ interface Application {
 const editUserSchema = z
   .object({
     name: z.string().min(2, "Nome deve ter ao menos 2 caracteres"),
-    email: z.string().email("E-mail invalido"),
-    applicationId: z.string().uuid("Aplicacao invalida"),
+    email: z.string().email("E-mail inválido"),
+    applicationId: z.string().uuid("Aplicação inválida"),
     roleIds: z.array(z.string().uuid()).min(1, "Selecione ao menos um perfil"),
     companyIds: z.array(z.string().uuid()),
     isApplicationAdmin: z.boolean(),
@@ -117,7 +117,7 @@ export function UserActions({
     onSuccess: ({ data }) => {
       form.setValue("roleIds", data ?? []);
     },
-    onError: () => toast.error("Erro ao carregar perfis do usuario"),
+    onError: () => toast.error("Erro ao carregar perfis do usuário"),
   });
 
   useEffect(() => {
@@ -143,11 +143,11 @@ export function UserActions({
 
   const { execute: updateUser, isPending: isUpdating } = useAction(updateUserAction, {
     onSuccess: () => {
-      toast.success("Usuario atualizado");
+      toast.success("Usuário atualizado");
       setShowEditModal(false);
     },
     onError: ({ error }) =>
-      toast.error(error.serverError || "Erro ao atualizar usuario"),
+      toast.error(error.serverError || "Erro ao atualizar usuário"),
   });
 
   const { execute: toggleActive, isPending: isToggling } = useAction(
@@ -160,9 +160,9 @@ export function UserActions({
   );
 
   const { execute: deleteUser, isPending: isDeleting } = useAction(deleteUserAction, {
-    onSuccess: () => toast.success("Usuario excluido"),
+    onSuccess: () => toast.success("Usuário excluído"),
     onError: ({ error }) =>
-      toast.error(error.serverError || "Erro ao excluir usuario"),
+      toast.error(error.serverError || "Erro ao excluir usuário"),
   });
 
   const submitEdit = (values: EditUserValues) => {
@@ -186,7 +186,7 @@ export function UserActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Opcoes</DropdownMenuLabel>
+          <DropdownMenuLabel>Opções</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
@@ -211,12 +211,12 @@ export function UserActions({
             className="text-destructive cursor-pointer"
             disabled={isDeleting}
             onClick={() => {
-              if (confirm(`Excluir o usuario ${user.email}?`)) {
+              if (confirm(`Excluir o usuário ${user.email}?`)) {
                 deleteUser({ userId: user.id });
               }
             }}
           >
-            <Trash2 className="mr-2" size={14} /> Excluir Usuario
+            <Trash2 className="mr-2" size={14} /> Excluir Usuário
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -224,7 +224,7 @@ export function UserActions({
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Editar Usuario</DialogTitle>
+            <DialogTitle>Editar Usuário</DialogTitle>
             <DialogDescription>
               Atualize os dados, perfis e empresas vinculadas.
             </DialogDescription>
@@ -267,7 +267,7 @@ export function UserActions({
                 name="applicationId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Aplicacao</FormLabel>
+                    <FormLabel>Aplicação</FormLabel>
                     <FormControl>
                       <select
                         {...field}
@@ -308,9 +308,9 @@ export function UserActions({
                       />
                     </FormControl>
                     <div>
-                      <FormLabel>Administrador Global da Aplicacao</FormLabel>
+                      <FormLabel>Administrador Global da Aplicação</FormLabel>
                       <p className="text-xs text-muted-foreground">
-                        Acesso automatico a todas as empresas da aplicacao.
+                        Acesso automático a todas as empresas da aplicação.
                       </p>
                     </div>
                   </FormItem>
@@ -356,7 +356,7 @@ export function UserActions({
                         })
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          Nenhum perfil disponivel para esta aplicacao.
+                          Nenhum perfil disponível para esta aplicação.
                         </p>
                       )}
                     </div>
@@ -400,7 +400,7 @@ export function UserActions({
                           })
                         ) : (
                           <p className="text-sm text-muted-foreground">
-                            Nenhuma empresa ativa para esta aplicacao.
+                            Nenhuma empresa ativa para esta aplicação.
                           </p>
                         )}
                       </div>
@@ -422,4 +422,3 @@ export function UserActions({
     </>
   );
 }
-

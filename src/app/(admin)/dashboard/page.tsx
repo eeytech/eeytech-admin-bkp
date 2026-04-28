@@ -99,8 +99,8 @@ export default async function DashboardPage() {
   const byPeriod = Array.from(periodMap.entries()).map(([day, total]) => ({ day, total }));
 
   const cards = [
-    { title: "Total de Aplicacoes", value: Number(appCount.count) },
-    { title: "Total de Usuarios", value: Number(userCount.count) },
+    { title: "Total de Aplicações", value: Number(appCount.count) },
+    { title: "Total de Usuários", value: Number(userCount.count) },
     { title: "Total de Perfis", value: Number(roleCount.count) },
     { title: "Total de Chamados", value: Number(ticketCount.count) },
     { title: "Chamados Abertos", value: statusMap.get("Aberto") ?? 0 },
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <PageShell title="Dashboard" description="Visao estrategica do ambiente admin.">
+    <PageShell title="Dashboard" description="Visão estratégica do ambiente admin.">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <Card key={card.title}>
@@ -131,7 +131,7 @@ export default async function DashboardPage() {
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Ultimos 5 chamados abertos</CardTitle>
+            <CardTitle>Últimos 5 chamados abertos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {recentTickets.length === 0 ? (
@@ -154,11 +154,11 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Ultimas aplicacoes criadas</CardTitle>
+            <CardTitle>Últimas aplicações criadas</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {recentApps.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem aplicacoes recentes.</p>
+              <p className="text-sm text-muted-foreground">Sem aplicações recentes.</p>
             ) : (
               recentApps.map((app) => (
                 <div key={app.id} className="flex items-start justify-between border-b pb-2">

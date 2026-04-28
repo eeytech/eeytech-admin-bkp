@@ -1,4 +1,4 @@
-﻿export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 
 import { and, desc, eq, ilike, or, count } from "drizzle-orm";
 import dayjs from "dayjs";
@@ -60,8 +60,8 @@ export default async function ApplicationsPage({
 
   return (
     <PageShell
-      title="Aplicacoes"
-      description="Gerencie aplicacoes, empresas, modulos e disponibilidade."
+      title="Aplicações"
+      description="Gerencie aplicações, empresas, módulos e disponibilidade."
       action={<CreateAppModal />}
     >
       <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -94,9 +94,9 @@ export default async function ApplicationsPage({
                 <TableHead className="min-w-[120px]">Slug</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Empresas</TableHead>
-                <TableHead>Modulos</TableHead>
+                <TableHead>Módulos</TableHead>
                 <TableHead className="min-w-[120px]">Criado em</TableHead>
-                <TableHead className="text-right">Acoes</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -106,7 +106,7 @@ export default async function ApplicationsPage({
                     colSpan={7}
                     className="h-24 text-center text-muted-foreground"
                   >
-                    Nenhuma aplicacao encontrada.
+                    Nenhuma aplicação encontrada.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -192,12 +192,8 @@ export default async function ApplicationsPage({
               </Button>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground text-center border-t pt-4">
-            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalApplications)} de {totalApplications} aplicação(ões).
-          </div>
         </div>
       )}
     </PageShell>
   );
 }
-

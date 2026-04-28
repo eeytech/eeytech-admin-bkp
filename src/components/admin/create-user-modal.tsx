@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { useAction } from "next-safe-action/hooks";
@@ -31,10 +31,10 @@ import { toast } from "sonner";
 
 const createUserSchema = z
   .object({
-    name: z.string().min(2, "Nome deve ter no minimo 2 caracteres"),
-    email: z.string().email("E-mail invalido"),
-    password: z.string().min(8, "Senha deve ter no minimo 8 caracteres"),
-    applicationId: z.string().uuid("Selecione uma aplicacao"),
+    name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
+    email: z.string().email("E-mail inválido"),
+    password: z.string().min(8, "Senha deve ter no mínimo 8 caracteres"),
+    applicationId: z.string().uuid("Selecione uma aplicação"),
     roleIds: z.array(z.string().uuid()).min(1, "Selecione ao menos um perfil"),
     companyIds: z.array(z.string().uuid()),
     isApplicationAdmin: z.boolean(),
@@ -92,7 +92,7 @@ export function CreateUserModal({
 
   const { execute, isPending } = useAction(createUserAction, {
     onSuccess: () => {
-      toast.success("Usuario criado com sucesso");
+      toast.success("Usuário criado com sucesso");
       setOpen(false);
       form.reset({
         name: "",
@@ -105,7 +105,7 @@ export function CreateUserModal({
       });
     },
     onError: ({ error }) => {
-      toast.error(error.serverError || "Erro ao criar usuario");
+      toast.error(error.serverError || "Erro ao criar usuário");
     },
   });
 
@@ -117,14 +117,14 @@ export function CreateUserModal({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" className="gap-2">
-          <UserPlus size={16} /> Novo Usuario
+          <UserPlus size={16} /> Novo Usuário
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Criar Novo Usuario</DialogTitle>
+          <DialogTitle>Criar Novo Usuário</DialogTitle>
           <DialogDescription>
-            Selecione aplicacao, perfis e empresas para definir o acesso.
+            Selecione aplicação, perfis e empresas para definir o acesso.
           </DialogDescription>
         </DialogHeader>
 
@@ -138,7 +138,7 @@ export function CreateUserModal({
                   <FormItem>
                     <FormLabel>Nome</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome do usuario" {...field} />
+                      <Input placeholder="Nome do usuário" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -179,7 +179,7 @@ export function CreateUserModal({
               name="applicationId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Aplicacao</FormLabel>
+                  <FormLabel>Aplicação</FormLabel>
                   <FormControl>
                     <select
                       {...field}
@@ -220,9 +220,9 @@ export function CreateUserModal({
                     />
                   </FormControl>
                   <div>
-                    <FormLabel>Administrador Global da Aplicacao</FormLabel>
+                    <FormLabel>Administrador Global da Aplicação</FormLabel>
                     <p className="text-xs text-muted-foreground">
-                      Acesso automatico a todas as empresas da aplicacao.
+                      Acesso automático a todas as empresas da aplicação.
                     </p>
                   </div>
                 </FormItem>
@@ -268,7 +268,7 @@ export function CreateUserModal({
                       })
                     ) : (
                       <p className="text-sm text-muted-foreground">
-                        Nenhum perfil disponivel para a aplicacao selecionada.
+                        Nenhum perfil disponível para a aplicação selecionada.
                       </p>
                     )}
                   </div>
@@ -312,7 +312,7 @@ export function CreateUserModal({
                         })
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          Nenhuma empresa ativa para a aplicacao selecionada.
+                          Nenhuma empresa ativa para a aplicação selecionada.
                         </p>
                       )}
                     </div>
@@ -325,7 +325,7 @@ export function CreateUserModal({
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Criar Usuario
+                Criar Usuário
               </Button>
             </DialogFooter>
           </form>
@@ -334,4 +334,3 @@ export function CreateUserModal({
     </Dialog>
   );
 }
-

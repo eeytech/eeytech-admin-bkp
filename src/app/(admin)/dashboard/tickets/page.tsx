@@ -128,6 +128,62 @@ export default async function TicketsPage({
         applications={allApplications}
       />
 
+      <div className="rounded-md border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Título</TableHead>
+                <TableHead>Aplicação</TableHead>
+                <TableHead>Empresa</TableHead>
+                <TableHead>Usuário</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[120px]">Criado em</TableHead>
+                <TableHead className="w-[80px] text-right"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTickets.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    Nenhum chamado encontrado.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTickets.map((ticket) => (
+                  <TableRow key={ticket.id}>
+                    <TableCell className="font-medium">{ticket.title}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{ticket.application.name}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {ticket.company?.name || "-"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {ticket.user?.name || "Desconhecido"}
+                    </TableCell>
+                    <TableCell>{statusBadge(ticket.status)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {dayjs(ticket.createdAt).format("DD/MM/YYYY HH:mm")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button asChild size="icon" variant="ghost">
+                        <Link href={`/dashboard/tickets/${ticket.id}`}>
+                          <MessageSquare className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
       {totalPages > 1 && (
         <div className="mt-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
@@ -168,9 +224,6 @@ export default async function TicketsPage({
                 )}
               </Button>
             </div>
-          </div>
-          <div className="text-xs text-muted-foreground text-center border-t pt-4">
-            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalTickets)} de {totalTickets} chamado(s).
           </div>
         </div>
       )}

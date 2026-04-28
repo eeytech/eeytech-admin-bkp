@@ -35,7 +35,7 @@ export function UserPermissionsModal({
     getUserProfilesAction,
     {
       onSuccess: ({ data }) => setSelectedRoleIds(data ?? []),
-      onError: () => toast.error("Erro ao carregar perfis do usuario"),
+      onError: () => toast.error("Erro ao carregar perfis do usuário"),
     },
   );
 
@@ -71,7 +71,7 @@ export function UserPermissionsModal({
         <DialogHeader>
           <DialogTitle>Editar Perfis</DialogTitle>
           <DialogDescription>
-            Selecione os perfis para a aplicacao {applicationName}.
+            Selecione os perfis para a aplicação {applicationName}.
           </DialogDescription>
         </DialogHeader>
 
@@ -84,7 +84,7 @@ export function UserPermissionsModal({
 
           {roles.length === 0 && !isLoading && (
             <p className="text-sm text-muted-foreground">
-              Nenhum perfil cadastrado para esta aplicacao.
+              Nenhum perfil cadastrado para esta aplicação.
             </p>
           )}
 

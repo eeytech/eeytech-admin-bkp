@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { useAction } from "next-safe-action/hooks";
@@ -124,7 +124,7 @@ export function CompaniesManager({
   const { execute: deleteCompany, isPending: isDeleting } = useAction(
     deleteCompanyAction,
     {
-      onSuccess: () => toast.success("Empresa excluida"),
+      onSuccess: () => toast.success("Empresa excluída"),
       onError: ({ error }) =>
         toast.error(error.serverError || "Erro ao excluir empresa"),
     },
@@ -168,7 +168,7 @@ export function CompaniesManager({
             <DialogHeader>
               <DialogTitle>Criar empresa</DialogTitle>
               <DialogDescription>
-                A empresa sera vinculada a esta aplicacao.
+                A empresa será vinculada a esta aplicação.
               </DialogDescription>
             </DialogHeader>
 
@@ -225,14 +225,14 @@ export function CompaniesManager({
               <TableHead>CNPJ</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Criada em</TableHead>
-              <TableHead className="text-right">Acoes</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {companies.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                  Nenhuma empresa cadastrada para esta aplicacao.
+                  Nenhuma empresa cadastrada para esta aplicação.
                 </TableCell>
               </TableRow>
             ) : (
@@ -361,4 +361,3 @@ export function CompaniesManager({
     </div>
   );
 }
-
