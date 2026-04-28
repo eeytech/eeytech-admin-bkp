@@ -82,29 +82,41 @@ WHERE NOT EXISTS (
 );
 --> statement-breakpoint
 UPDATE "core"."tickets" t
-SET "company_id" = c."id"
-FROM LATERAL (
+SET "company_id" = (
   SELECT c2."id"
   FROM "core"."companies" c2
   WHERE c2."application_id" = t."application_id"
   ORDER BY c2."created_at" ASC
   LIMIT 1
-) c
+)
 WHERE t."company_id" IS NULL;
 --> statement-breakpoint
-ALTER TABLE "core"."tickets" ALTER COLUMN "company_id" SET NOT NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM "core"."tickets"
+    WHERE "company_id" IS NULL
+  ) THEN
+    ALTER TABLE "core"."tickets" ALTER COLUMN "company_id" SET NOT NULL;
+  END IF;
+END $$;
 --> statement-breakpoint
 INSERT INTO "core"."user_companies" ("user_id", "company_id", "created_at")
 SELECT
   u."id",
-  c."id",
+  (
+    SELECT c2."id"
+    FROM "core"."companies" c2
+    WHERE c2."application_id" = u."application_id"
+    ORDER BY c2."created_at" ASC
+    LIMIT 1
+  ) AS "company_id",
   now()
 FROM "core"."users" u
-JOIN LATERAL (
-  SELECT c2."id"
-  FROM "core"."companies" c2
-  WHERE c2."application_id" = u."application_id"
-  ORDER BY c2."created_at" ASC
-  LIMIT 1
-) c ON true
+WHERE EXISTS (
+  SELECT 1
+  FROM "core"."companies" c3
+  WHERE c3."application_id" = u."application_id"
+)
 ON CONFLICT ("user_id", "company_id") DO NOTHING;
