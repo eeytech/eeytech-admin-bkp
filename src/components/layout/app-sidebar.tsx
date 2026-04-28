@@ -11,6 +11,7 @@ import {
   Settings,
   ShieldCheck,
   Menu,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,7 @@ import { useState } from "react";
 const menuItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Aplicações", href: "/dashboard/applications", icon: Globe },
+  { name: "Empresas", href: "/dashboard/companies", icon: Building2 },
   { name: "Usuários", href: "/dashboard/users", icon: Users },
   { name: "Chamados", href: "/dashboard/tickets", icon: Ticket },
   { name: "Perfis", href: "/dashboard/roles", icon: ShieldCheck },

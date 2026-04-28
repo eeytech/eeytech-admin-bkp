@@ -49,89 +49,91 @@ export default async function ApplicationsPage({
       description="Gerencie aplicacoes, empresas, modulos e disponibilidade."
       action={<CreateAppModal />}
     >
-      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-4">
+      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
         <Input name="q" placeholder="Buscar por nome" defaultValue={q} />
         <select
           name="status"
           defaultValue={status}
-          className="rounded-md border bg-background p-2 text-sm"
+          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="all">Todos os status</option>
           <option value="active">Ativas</option>
           <option value="inactive">Desativadas</option>
         </select>
-        <div className="md:col-span-2 flex justify-end gap-2">
-          <Button type="submit" variant="outline">
+        <div className="sm:col-span-2 lg:col-span-2 flex flex-col sm:flex-row justify-end gap-2">
+          <Button type="submit" variant="outline" className="w-full sm:w-auto">
             Filtrar
           </Button>
-          <Button asChild variant="ghost">
+          <Button asChild variant="ghost" className="w-full sm:w-auto">
             <a href="/dashboard/applications">Limpar</a>
           </Button>
         </div>
       </form>
 
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Slug</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Empresas</TableHead>
-              <TableHead>Modulos</TableHead>
-              <TableHead>Criado em</TableHead>
-              <TableHead className="text-right">Acoes</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredApplications.length === 0 ? (
+      <div className="rounded-md border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Nenhuma aplicacao encontrada.
-                </TableCell>
+                <TableHead className="min-w-[150px]">Nome</TableHead>
+                <TableHead className="min-w-[120px]">Slug</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Empresas</TableHead>
+                <TableHead>Modulos</TableHead>
+                <TableHead className="min-w-[120px]">Criado em</TableHead>
+                <TableHead className="text-right">Acoes</TableHead>
               </TableRow>
-            ) : (
-              filteredApplications.map((app) => (
-                <TableRow key={app.id}>
-                  <TableCell className="font-medium">{app.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono">
-                      {app.slug}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={app.isActive ? "default" : "secondary"}>
-                      {app.isActive ? "Ativa" : "Inativa"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{app.companies.length}</TableCell>
-                  <TableCell>{app.modules.length}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {dayjs(app.createdAt).format("DD/MM/YYYY")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <ApplicationActions
-                      app={{
-                        id: app.id,
-                        name: app.name,
-                        slug: app.slug,
-                        isActive: app.isActive,
-                        modules: app.modules.map((module) => ({
-                          id: module.id,
-                          name: module.name,
-                          slug: module.slug,
-                        })),
-                      }}
-                    />
+            </TableHeader>
+            <TableBody>
+              {filteredApplications.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    Nenhuma aplicacao encontrada.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredApplications.map((app) => (
+                  <TableRow key={app.id}>
+                    <TableCell className="font-medium">{app.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono">
+                        {app.slug}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={app.isActive ? "default" : "secondary"}>
+                        {app.isActive ? "Ativa" : "Inativa"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{app.companies.length}</TableCell>
+                    <TableCell>{app.modules.length}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {dayjs(app.createdAt).format("DD/MM/YYYY")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <ApplicationActions
+                        app={{
+                          id: app.id,
+                          name: app.name,
+                          slug: app.slug,
+                          isActive: app.isActive,
+                          modules: app.modules.map((module) => ({
+                            id: module.id,
+                            name: module.name,
+                            slug: module.slug,
+                          })),
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </PageShell>
   );

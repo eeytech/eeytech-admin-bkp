@@ -36,12 +36,53 @@ export const applications = core.table("applications", {
 
 export const companies = core.table("companies", {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
+  name: text("name").notNull(), // Razão Social
+  tradeName: text("trade_name"), // Nome Fantasia
   cnpj: varchar("cnpj", { length: 18 }),
+  email: text("email"),
+  phone: varchar("phone", { length: 20 }),
   status: varchar("status", { length: 20 }).default("active").notNull(),
+
+  // Endereço
+  zipCode: varchar("zip_code", { length: 9 }),
+  street: text("street"),
+  number: varchar("number", { length: 20 }),
+  complement: text("complement"),
+  neighborhood: text("neighborhood"),
+  city: text("city"),
+  state: varchar("state", { length: 2 }),
+
   applicationId: uuid("application_id")
     .references(() => applications.id, { onDelete: "cascade" })
     .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const contracts = core.table("contracts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .references(() => companies.id, { onDelete: "cascade" })
+    .notNull(),
+  title: text("title").notNull(),
+  status: varchar("status", { length: 20 }).default("active").notNull(), // active, expired, terminated
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  documentUrl: text("document_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const payments = core.table("payments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .references(() => companies.id, { onDelete: "cascade" })
+    .notNull(),
+  amount: text("amount").notNull(), // Armazenado como string para evitar problemas de precisão/moeda
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // paid, pending, overdue, canceled
+  dueDate: timestamp("due_date").notNull(),
+  paidAt: timestamp("paid_at"),
+  description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -296,5 +337,21 @@ export const companiesRelations = relations(companies, ({ one, many }) => ({
   }),
   users: many(userCompanies),
   tickets: many(tickets),
+  contracts: many(contracts),
+  payments: many(payments),
+}));
+
+export const contractsRelations = relations(contracts, ({ one }) => ({
+  company: one(companies, {
+    fields: [contracts.companyId],
+    references: [companies.id],
+  }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  company: one(companies, {
+    fields: [payments.companyId],
+    references: [companies.id],
+  }),
 }));
 

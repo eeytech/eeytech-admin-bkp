@@ -110,8 +110,8 @@ export default async function TicketsPage({
       title="Gestão Global de Chamados"
       description="Visualize e gerencie todos os tickets de suporte de todas as aplicações e empresas."
     >
-      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-7">
-        <div className="md:col-span-2">
+      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-7">
+        <div className="sm:col-span-2 lg:col-span-2">
           <Input
             name="q"
             placeholder="Buscar por título ou ID"
@@ -122,7 +122,7 @@ export default async function TicketsPage({
         <select
           name="applicationId"
           defaultValue={applicationId}
-          className="rounded-md border bg-background p-2 text-sm"
+          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="all">Todas as aplicações</option>
           {allApplications.map((app) => (
@@ -135,7 +135,7 @@ export default async function TicketsPage({
         <select
           name="status"
           defaultValue={status}
-          className="rounded-md border bg-background p-2 text-sm"
+          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="all">Todos os status</option>
           {STATUS_OPTIONS.map((option) => (
@@ -148,12 +148,12 @@ export default async function TicketsPage({
         <select
           name="userId"
           defaultValue={userId}
-          className="rounded-md border bg-background p-2 text-sm"
+          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="all">Todos os usuários</option>
           {allUsers.map((user) => (
             <option key={user.id} value={user.id}>
-              {user.name} ({user.email})
+              {user.name}
             </option>
           ))}
         </select>
@@ -161,89 +161,91 @@ export default async function TicketsPage({
         <Input name="dateFrom" type="date" defaultValue={dateFrom} />
         <Input name="dateTo" type="date" defaultValue={dateTo} />
 
-        <div className="md:col-span-7 flex justify-between items-center gap-2">
-          <div className="text-xs text-muted-foreground">
+        <div className="sm:col-span-2 lg:col-span-7 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="text-xs text-muted-foreground order-2 sm:order-1">
             Exibindo {allTickets.length} chamado(s) encontrado(s).
           </div>
-          <div className="flex gap-2">
-            <Button type="submit" variant="outline">
+          <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
+            <Button type="submit" variant="outline" className="flex-1 sm:flex-none">
               Filtrar
             </Button>
-            <Button asChild variant="ghost">
+            <Button asChild variant="ghost" className="flex-1 sm:flex-none">
               <a href="/dashboard/tickets">Limpar</a>
             </Button>
           </div>
         </div>
       </form>
 
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Título</TableHead>
-              <TableHead>Aplicação</TableHead>
-              <TableHead>Empresa</TableHead>
-              <TableHead>Usuário</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Criado em</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {allTickets.length === 0 ? (
+      <div className="rounded-md border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={8}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Nenhum chamado encontrado no banco de dados.
-                </TableCell>
+                <TableHead className="min-w-[100px]">ID</TableHead>
+                <TableHead className="min-w-[200px]">Título</TableHead>
+                <TableHead className="min-w-[120px]">Aplicação</TableHead>
+                <TableHead className="min-w-[150px]">Empresa</TableHead>
+                <TableHead className="min-w-[180px]">Usuário</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="min-w-[150px]">Criado em</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
-            ) : (
-              allTickets.map((ticket) => (
-                <TableRow key={ticket.id}>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    #{ticket.id.slice(0, 8)}
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate font-medium">
-                    {ticket.title}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {ticket.application?.name ?? "N/A"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[150px] truncate">
-                    {ticket.company?.name ?? "N/A"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="text-sm">
-                        {ticket.user?.name ?? "Desconhecido"}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground line-clamp-1">
-                        {ticket.user?.email}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{statusBadge(ticket.status)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {dayjs(ticket.createdAt).format("DD/MM/YYYY HH:mm")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button asChild variant="ghost" size="sm" className="gap-2">
-                      <Link href={`/dashboard/tickets/${ticket.id}`}>
-                        <MessageSquare size={16} />
-                        Ver
-                      </Link>
-                    </Button>
+            </TableHeader>
+            <TableBody>
+              {allTickets.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={8}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    Nenhum chamado encontrado.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                allTickets.map((ticket) => (
+                  <TableRow key={ticket.id}>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      #{ticket.id.slice(0, 8)}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate font-medium">
+                      {ticket.title}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="whitespace-nowrap">
+                        {ticket.application?.name ?? "N/A"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[150px] truncate">
+                      {ticket.company?.name ?? "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-sm truncate max-w-[150px]">
+                          {ticket.user?.name ?? "Desconhecido"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">
+                          {ticket.user?.email}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{statusBadge(ticket.status)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {dayjs(ticket.createdAt).format("DD/MM/YYYY HH:mm")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button asChild variant="ghost" size="sm" className="gap-2">
+                        <Link href={`/dashboard/tickets/${ticket.id}`}>
+                          <MessageSquare size={16} />
+                          Ver
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </PageShell>
   );

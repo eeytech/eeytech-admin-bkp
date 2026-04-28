@@ -93,12 +93,12 @@ export default async function UsersPage({
         />
       }
     >
-      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-5">
+      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-5">
         <Input name="q" placeholder="Buscar por nome ou email" defaultValue={q} />
         <select
           name="applicationId"
           defaultValue={filterApplicationId}
-          className="rounded-md border bg-background p-2 text-sm"
+          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="all">Todas as aplicacoes</option>
           {allApplications.map((application) => (
@@ -110,113 +110,115 @@ export default async function UsersPage({
         <select
           name="status"
           defaultValue={filterStatus}
-          className="rounded-md border bg-background p-2 text-sm"
+          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="all">Todos os status</option>
           <option value="active">Ativos</option>
           <option value="inactive">Desativados</option>
         </select>
-        <div className="md:col-span-2 flex justify-end gap-2">
-          <Button type="submit" variant="outline">
+        <div className="sm:col-span-2 lg:col-span-2 flex flex-col sm:flex-row justify-end gap-2">
+          <Button type="submit" variant="outline" className="w-full sm:w-auto">
             Filtrar
           </Button>
-          <Button asChild variant="ghost">
+          <Button asChild variant="ghost" className="w-full sm:w-auto">
             <a href="/dashboard/users">Limpar</a>
           </Button>
         </div>
       </form>
 
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>E-mail</TableHead>
-              <TableHead>Aplicacao</TableHead>
-              <TableHead>Empresas</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Criado em</TableHead>
-              <TableHead className="text-right">Acoes</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.length === 0 ? (
+      <div className="rounded-md border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Nenhum usuario encontrado.
-                </TableCell>
+                <TableHead className="min-w-[150px]">Nome</TableHead>
+                <TableHead className="min-w-[180px]">E-mail</TableHead>
+                <TableHead className="min-w-[120px]">Aplicacao</TableHead>
+                <TableHead className="min-w-[150px]">Empresas</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="min-w-[100px]">Criado em</TableHead>
+                <TableHead className="text-right">Acoes</TableHead>
               </TableRow>
-            ) : (
-              filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{user.application.name}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.isApplicationAdmin ? (
-                      <Badge>Administrador Global</Badge>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">
-                        {user.companies.length} empresa(s)
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {user.isActive ? (
-                      <Badge
-                        variant="outline"
-                        className="gap-1 border-green-200 bg-green-50 text-green-600"
-                      >
-                        <CheckCircle size={12} /> Ativo
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive" className="gap-1">
-                        <Ban size={12} /> Inativo
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {dayjs(user.createdAt).format("DD/MM/YYYY")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <UserActions
-                      user={{
-                        id: user.id,
-                        name: user.name,
-                        email: user.email,
-                        isActive: user.isActive,
-                        applicationId: user.applicationId,
-                        applicationName: user.application.name,
-                        isApplicationAdmin: user.isApplicationAdmin,
-                        companyIds: user.companies.map((entry) => entry.companyId),
-                      }}
-                      applications={allApplications.map((application) => ({
-                        id: application.id,
-                        name: application.name,
-                        companies: application.companies.map((company) => ({
-                          id: company.id,
-                          name: company.name,
-                          status: company.status,
-                        })),
-                        roles: application.roles.map((role) => ({
-                          id: role.id,
-                          name: role.name,
-                          slug: role.slug,
-                          applicationId: role.applicationId,
-                        })),
-                      }))}
-                    />
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    Nenhum usuario encontrado.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell className="truncate max-w-[180px]">{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="whitespace-nowrap">{user.application.name}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.isApplicationAdmin ? (
+                        <Badge>Administrador Global</Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                          {user.companies.length} empresa(s)
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {user.isActive ? (
+                        <Badge
+                          variant="outline"
+                          className="gap-1 border-green-200 bg-green-50 text-green-600 whitespace-nowrap"
+                        >
+                          <CheckCircle size={12} /> Ativo
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="gap-1 whitespace-nowrap">
+                          <Ban size={12} /> Inativo
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {dayjs(user.createdAt).format("DD/MM/YYYY")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <UserActions
+                        user={{
+                          id: user.id,
+                          name: user.name,
+                          email: user.email,
+                          isActive: user.isActive,
+                          applicationId: user.applicationId,
+                          applicationName: user.application.name,
+                          isApplicationAdmin: user.isApplicationAdmin,
+                          companyIds: user.companies.map((entry) => entry.companyId),
+                        }}
+                        applications={allApplications.map((application) => ({
+                          id: application.id,
+                          name: application.name,
+                          companies: application.companies.map((company) => ({
+                            id: company.id,
+                            name: company.name,
+                            status: company.status,
+                          })),
+                          roles: application.roles.map((role) => ({
+                            id: role.id,
+                            name: role.name,
+                            slug: role.slug,
+                            applicationId: role.applicationId,
+                          })),
+                        }))}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </PageShell>
   );

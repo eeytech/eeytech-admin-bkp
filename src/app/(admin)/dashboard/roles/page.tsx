@@ -52,12 +52,12 @@ export default async function RolesPage({
       description="Gerencie perfis por aplicacao e permissoes por modulo."
       action={<CreateRoleModal applications={allApps} />}
     >
-      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-4">
+      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
         <Input name="q" placeholder="Buscar por nome" defaultValue={q} />
         <select
           name="applicationId"
           defaultValue={applicationId}
-          className="rounded-md border bg-background p-2 text-sm"
+          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="all">Todas as aplicacoes</option>
           {allApps.map((app) => (
@@ -66,60 +66,66 @@ export default async function RolesPage({
             </option>
           ))}
         </select>
-        <div className="md:col-span-2 flex justify-end gap-2">
-          <Button type="submit" variant="outline">
+        <div className="sm:col-span-2 lg:col-span-2 flex flex-col sm:flex-row justify-end gap-2">
+          <Button type="submit" variant="outline" className="w-full sm:w-auto">
             Filtrar
           </Button>
-          <Button asChild variant="ghost">
+          <Button asChild variant="ghost" className="w-full sm:w-auto">
             <a href="/dashboard/roles">Limpar</a>
           </Button>
         </div>
       </form>
 
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Perfil</TableHead>
-              <TableHead>Aplicacao</TableHead>
-              <TableHead>Modulos</TableHead>
-              <TableHead className="text-right">Acoes</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredRoles.length === 0 ? (
+      <div className="rounded-md border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Nenhum perfil encontrado.
-                </TableCell>
+                <TableHead className="min-w-[150px]">Perfil</TableHead>
+                <TableHead className="min-w-[150px]">Aplicacao</TableHead>
+                <TableHead>Modulos</TableHead>
+                <TableHead className="text-right">Acoes</TableHead>
               </TableRow>
-            ) : (
-              filteredRoles.map((role) => (
-                <TableRow key={role.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span>{role.name}</span>
-                      <span className="font-mono text-[10px] uppercase text-muted-foreground">
-                        {role.slug}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{role.application.name}</TableCell>
-                  <TableCell>{role.permissions.length}</TableCell>
-                  <TableCell className="text-right">
-                    <RolePermissionsButton
-                      roleId={role.id}
-                      modules={role.application.modules}
-                    />
+            </TableHeader>
+            <TableBody>
+              {filteredRoles.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    Nenhum perfil encontrado.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredRoles.map((role) => (
+                  <TableRow key={role.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span className="truncate max-w-[150px]">{role.name}</span>
+                        <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                          {role.slug}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="whitespace-nowrap">
+                        {role.application.name}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{role.permissions.length}</TableCell>
+                    <TableCell className="text-right">
+                      <RolePermissionsButton
+                        roleId={role.id}
+                        modules={role.application.modules}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </PageShell>
   );
