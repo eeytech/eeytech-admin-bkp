@@ -1,6 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS "core";
 --> statement-breakpoint
-CREATE TABLE "core"."applications" (
+CREATE TABLE IF NOT EXISTS "core"."applications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"slug" varchar(50) NOT NULL,
@@ -10,14 +10,14 @@ CREATE TABLE "core"."applications" (
 	CONSTRAINT "applications_api_key_unique" UNIQUE("api_key")
 );
 --> statement-breakpoint
-CREATE TABLE "core"."modules" (
+CREATE TABLE IF NOT EXISTS "core"."modules" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"application_id" uuid NOT NULL,
 	"name" text NOT NULL,
 	"slug" varchar(50) NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "core"."sessions" (
+CREATE TABLE IF NOT EXISTS "core"."sessions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"token" text NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE "core"."sessions" (
 	CONSTRAINT "sessions_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
-CREATE TABLE "core"."ticket_messages" (
+CREATE TABLE IF NOT EXISTS "core"."ticket_messages" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"ticket_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE "core"."ticket_messages" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "core"."tickets" (
+CREATE TABLE IF NOT EXISTS "core"."tickets" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"application_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE "core"."tickets" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "core"."user_module_permissions" (
+CREATE TABLE IF NOT EXISTS "core"."user_module_permissions" (
 	"user_id" uuid NOT NULL,
 	"application_id" uuid NOT NULL,
 	"module_slug" text NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE "core"."user_module_permissions" (
 	CONSTRAINT "user_module_permissions_user_id_application_id_module_slug_pk" PRIMARY KEY("user_id","application_id","module_slug")
 );
 --> statement-breakpoint
-CREATE TABLE "core"."users" (
+CREATE TABLE IF NOT EXISTS "core"."users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
 	"password_hash" text NOT NULL,
@@ -62,11 +62,82 @@ CREATE TABLE "core"."users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-ALTER TABLE "core"."modules" ADD CONSTRAINT "modules_application_id_applications_id_fk" FOREIGN KEY ("application_id") REFERENCES "core"."applications"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "core"."sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "core"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "core"."ticket_messages" ADD CONSTRAINT "ticket_messages_ticket_id_tickets_id_fk" FOREIGN KEY ("ticket_id") REFERENCES "core"."tickets"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "core"."ticket_messages" ADD CONSTRAINT "ticket_messages_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "core"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "core"."tickets" ADD CONSTRAINT "tickets_application_id_applications_id_fk" FOREIGN KEY ("application_id") REFERENCES "core"."applications"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "core"."tickets" ADD CONSTRAINT "tickets_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "core"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "core"."user_module_permissions" ADD CONSTRAINT "user_module_permissions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "core"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "core"."user_module_permissions" ADD CONSTRAINT "user_module_permissions_application_id_applications_id_fk" FOREIGN KEY ("application_id") REFERENCES "core"."applications"("id") ON DELETE cascade ON UPDATE no action;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'modules_application_id_applications_id_fk'
+  ) THEN
+    ALTER TABLE "core"."modules" ADD CONSTRAINT "modules_application_id_applications_id_fk"
+    FOREIGN KEY ("application_id") REFERENCES "core"."applications"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'sessions_user_id_users_id_fk'
+  ) THEN
+    ALTER TABLE "core"."sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk"
+    FOREIGN KEY ("user_id") REFERENCES "core"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'ticket_messages_ticket_id_tickets_id_fk'
+  ) THEN
+    ALTER TABLE "core"."ticket_messages" ADD CONSTRAINT "ticket_messages_ticket_id_tickets_id_fk"
+    FOREIGN KEY ("ticket_id") REFERENCES "core"."tickets"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'ticket_messages_user_id_users_id_fk'
+  ) THEN
+    ALTER TABLE "core"."ticket_messages" ADD CONSTRAINT "ticket_messages_user_id_users_id_fk"
+    FOREIGN KEY ("user_id") REFERENCES "core"."users"("id") ON DELETE no action ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'tickets_application_id_applications_id_fk'
+  ) THEN
+    ALTER TABLE "core"."tickets" ADD CONSTRAINT "tickets_application_id_applications_id_fk"
+    FOREIGN KEY ("application_id") REFERENCES "core"."applications"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'tickets_user_id_users_id_fk'
+  ) THEN
+    ALTER TABLE "core"."tickets" ADD CONSTRAINT "tickets_user_id_users_id_fk"
+    FOREIGN KEY ("user_id") REFERENCES "core"."users"("id") ON DELETE no action ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'user_module_permissions_user_id_users_id_fk'
+  ) THEN
+    ALTER TABLE "core"."user_module_permissions" ADD CONSTRAINT "user_module_permissions_user_id_users_id_fk"
+    FOREIGN KEY ("user_id") REFERENCES "core"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'user_module_permissions_application_id_applications_id_fk'
+  ) THEN
+    ALTER TABLE "core"."user_module_permissions" ADD CONSTRAINT "user_module_permissions_application_id_applications_id_fk"
+    FOREIGN KEY ("application_id") REFERENCES "core"."applications"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
