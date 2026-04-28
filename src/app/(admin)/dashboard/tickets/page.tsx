@@ -17,9 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MessageSquare, Calendar } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { requireModulePermission } from "@/lib/permissions/mbac";
 import { TICKET_STATUSES } from "@/lib/tickets/status";
+import { TicketFilters } from "./_components/ticket-filters";
 
 const STATUS_OPTIONS = TICKET_STATUSES.map((status) => ({
   value: status,
@@ -121,87 +122,15 @@ export default async function TicketsPage({
       title="Gestão Global de Chamados"
       description="Visualize e gerencie todos os tickets de suporte de todas as aplicações e empresas."
     >
-      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-6">
-        <div className="sm:col-span-2 lg:col-span-2">
-          <Input
-            name="q"
-            placeholder="Buscar por título ou ID"
-            defaultValue={q}
-          />
-        </div>
+      <TicketFilters 
+        initialFilters={{ q, status, userId, applicationId, dateFrom, dateTo }}
+        users={allUsers}
+        applications={allApplications}
+      />
 
-        <select
-          name="applicationId"
-          defaultValue={applicationId}
-          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="all">Todas as aplicações</option>
-          {allApplications.map((app) => (
-            <option key={app.id} value={app.id}>
-              {app.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          name="status"
-          defaultValue={status}
-          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="all">Todos os status</option>
-          {STATUS_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          name="userId"
-          defaultValue={userId}
-          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="all">Todos os usuários</option>
-          {allUsers.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.name}
-            </option>
-          ))}
-        </select>
-
-        <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1 lg:col-span-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <div className="flex flex-1 items-center gap-2 text-sm">
-            <input
-              type="date"
-              name="dateFrom"
-              defaultValue={dateFrom}
-              className="w-full bg-transparent focus:outline-none"
-            />
-            <span className="text-muted-foreground">até</span>
-            <input
-              type="date"
-              name="dateTo"
-              defaultValue={dateTo}
-              className="w-full bg-transparent focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="sm:col-span-2 lg:col-span-6 flex flex-col sm:flex-row justify-between items-center gap-4 pt-2 border-t">
-          <div className="text-xs text-muted-foreground order-2 sm:order-1">
-            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalTickets)} de {totalTickets} chamado(s).
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
-            <Button type="submit" variant="outline" className="flex-1 sm:flex-none">
-              Filtrar
-            </Button>
-            <Button asChild variant="ghost" className="flex-1 sm:flex-none">
-              <Link href="/dashboard/tickets">Limpar</Link>
-            </Button>
-          </div>
-        </div>
-      </form>
+      <div className="text-xs text-muted-foreground mb-4">
+        Exibindo {offset + 1} a {Math.min(offset + pageSize, totalTickets)} de {totalTickets} chamado(s).
+      </div>
 
       <div className="rounded-md border bg-card overflow-hidden">
         <div className="overflow-x-auto">
