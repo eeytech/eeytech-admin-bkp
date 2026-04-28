@@ -88,7 +88,7 @@ export const deleteExpenseAction = actionClient
 export async function getFinanceOverview() {
   await requireModulePermission("finance", "READ", "eeytech-admin");
 
-  const now = new Date();
+  const nowIso = dayjs().toISOString();
   const monthStart = dayjs().startOf("month").toDate();
   const monthEnd = dayjs().endOf("month").toDate();
 
@@ -122,7 +122,7 @@ export async function getFinanceOverview() {
             sum(
               case
                 when ${payments.status} = 'Vencido'
-                  or (${payments.status} = 'Pendente' and ${payments.dueDate} < ${now})
+                  or (${payments.status} = 'Pendente' and ${payments.dueDate} < ${nowIso})
                 then ${payments.amount}
                 else 0
               end
