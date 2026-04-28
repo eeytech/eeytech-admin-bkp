@@ -12,7 +12,7 @@ import { relations } from "drizzle-orm";
 
 export const core = pgSchema("core");
 
-export const ticketMessageSourceEnum = pgEnum("ticket_message_source", [
+export const ticketMessageSourceEnum = core.enum("ticket_message_source", [
   "user",
   "support",
 ]);
