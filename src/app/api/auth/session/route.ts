@@ -1,6 +1,7 @@
 ﻿import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/auth/jwt";
+import { getSystemSettings } from "@/lib/system-settings";
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -16,6 +17,8 @@ export async function GET() {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
+  const systemSettings = await getSystemSettings();
+
   return NextResponse.json({
     authenticated: true,
     session: {
@@ -27,6 +30,11 @@ export async function GET() {
       isApplicationAdmin: payload.isApplicationAdmin,
       companies: payload.companies,
       activeCompanyId: payload.activeCompanyId,
+    },
+    system: {
+      instanceName: systemSettings.instanceName,
+      apiUrl: systemSettings.apiUrl,
+      sessionTimeoutMinutes: systemSettings.sessionTimeoutMinutes,
     },
   });
 }

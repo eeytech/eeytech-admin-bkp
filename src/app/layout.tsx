@@ -7,15 +7,21 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "@/components/ui/sonner";
 import { ReactQueryProvider } from "@/providers/react-query";
 
+import { getSystemSettings } from "@/lib/system-settings";
+
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Eeytech Admin",
-  description: "Painel central de gerenciamento Eeytech",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSystemSettings();
+  
+  return {
+    title: settings.instanceName || "Eeytech Admin",
+    description: "Painel central de gerenciamento Eeytech",
+  };
+}
 
 export default function RootLayout({
   children,

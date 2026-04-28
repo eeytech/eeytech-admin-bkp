@@ -51,6 +51,7 @@ const rolePermissionsSchema = z.object({
 export const updateRolePermissionsAction = actionClient
   .schema(rolePermissionsSchema)
   .action(async ({ parsedInput: { roleId, permissions } }) => {
+    // Exige permissão de escrita em roles no painel administrativo
     await requireModulePermission("roles", "WRITE", "eeytech-admin");
 
     await db.transaction(async (tx) => {
@@ -76,6 +77,7 @@ export const updateRolePermissionsAction = actionClient
 export const getRolePermissionsAction = actionClient
   .schema(z.object({ roleId: z.string().uuid() }))
   .action(async ({ parsedInput: { roleId } }) => {
+    // Exige permissão de leitura em roles no painel administrativo
     await requireModulePermission("roles", "READ", "eeytech-admin");
 
     const permissions = await db.query.rolePermissions.findMany({
@@ -83,4 +85,16 @@ export const getRolePermissionsAction = actionClient
     });
 
     return permissions;
+  });
+
+export const deleteRoleAction = actionClient
+  .schema(z.object({ roleId: z.string().uuid() }))
+  .action(async ({ parsedInput: { roleId } }) => {
+    // Exige permissão de escrita em roles no painel administrativo
+    await requireModulePermission("roles", "WRITE", "eeytech-admin");
+
+    await db.delete(roles).where(eq(roles.id, roleId));
+
+    revalidatePath("/dashboard/roles");
+    return { success: true };
   });

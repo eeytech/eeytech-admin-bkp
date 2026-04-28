@@ -49,26 +49,26 @@ export default async function TicketDetailsPage({
 
   return (
     <PageShell
-      title={`Chamado #${ticket.id.slice(0, 8)}`}
-      description={ticket.title}
+      title={`Chamado: ${ticket.title}`}
+      description={`Gerenciamento do chamado aberto por ${ticket.user.name}`}
       action={getStatusBadge(ticket.status)}
     >
       <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
         <div className="space-y-6 md:col-span-3">
           <Card>
             <CardHeader>
-              <CardTitle>Descricao do chamado</CardTitle>
+              <CardTitle>Descrição do chamado</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               {ticket.description}
             </CardContent>
           </Card>
 
-          <Card className="min-h-[420px]">
+          <Card>
             <CardHeader>
-              <CardTitle>Historico de respostas</CardTitle>
+              <CardTitle>Histórico de respostas</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="max-h-[500px] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
               {messages.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Sem respostas registradas.</p>
               ) : (
@@ -78,7 +78,7 @@ export default async function TicketDetailsPage({
                       {message.user.name} ({message.user.email}) -{" "}
                       {dayjs(message.createdAt).format("DD/MM/YYYY HH:mm")}
                     </div>
-                    <p className="text-sm">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   </div>
                 ))
               )}
@@ -93,7 +93,7 @@ export default async function TicketDetailsPage({
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div>
-                <span className="text-muted-foreground">Aplicacao: </span>
+                <span className="text-muted-foreground">Aplicação: </span>
                 <span>{ticket.application.name}</span>
               </div>
               <div>
@@ -101,11 +101,11 @@ export default async function TicketDetailsPage({
                 <span>{ticket.company.name}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Usuario: </span>
+                <span className="text-muted-foreground">Usuário: </span>
                 <span>{ticket.user.name}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Email: </span>
+                <span className="text-muted-foreground">E-mail: </span>
                 <span>{ticket.user.email}</span>
               </div>
               <div>

@@ -30,7 +30,7 @@ import { toast } from "sonner";
 
 const formSchema = z.object({
   name: z.string().min(3, "Nome muito curto"),
-  applicationId: z.string().uuid("Selecione uma aplicacao"),
+  applicationId: z.string().uuid("Selecione uma aplicação"),
   description: z.string().optional(),
 });
 
@@ -70,7 +70,7 @@ export function CreateRoleModal({
         <DialogHeader>
           <DialogTitle>Criar Novo Perfil</DialogTitle>
           <DialogDescription>
-            Defina um perfil de acesso para uma aplicacao especifica.
+            Defina um perfil de acesso para uma aplicação específica.
           </DialogDescription>
         </DialogHeader>
 
@@ -81,7 +81,7 @@ export function CreateRoleModal({
               name="applicationId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Aplicacao</FormLabel>
+                  <FormLabel>Aplicação</FormLabel>
                   <FormControl>
                     <select
                       {...field}
@@ -118,10 +118,10 @@ export function CreateRoleModal({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descricao</FormLabel>
+                  <FormLabel>Descrição</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Responsabilidades do perfil"
+                      placeholder="Descreva as responsabilidades deste perfil"
                       {...field}
                     />
                   </FormControl>

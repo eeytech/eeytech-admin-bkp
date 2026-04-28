@@ -1,10 +1,10 @@
 ﻿export const dynamic = "force-dynamic";
 
-import { and, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lte, or, sql, count } from "drizzle-orm";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { applications, companies, tickets, users } from "@/lib/db/schema";
+import { applications, tickets, users } from "@/lib/db/schema";
 import { PageShell } from "@/components/admin/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Calendar } from "lucide-react";
 import { requireModulePermission } from "@/lib/permissions/mbac";
 import { TICKET_STATUSES } from "@/lib/tickets/status";
 
@@ -48,6 +48,7 @@ export default async function TicketsPage({
     applicationId?: string;
     dateFrom?: string;
     dateTo?: string;
+    page?: string;
   }>;
 }) {
   // Apenas verificamos se o usuário tem permissão de leitura de tickets no sistema central
@@ -60,43 +61,38 @@ export default async function TicketsPage({
   const applicationId = filters.applicationId ?? "all";
   const dateFrom = filters.dateFrom ?? "";
   const dateTo = filters.dateTo ?? "";
+  const page = Math.max(1, parseInt(filters.page ?? "1"));
+  const pageSize = 10;
+  const offset = (page - 1) * pageSize;
 
-  // Começamos sem filtros obrigatórios para exibir TUDO por padrão
-  const where = [];
-
-  // Aplicamos filtros apenas se forem selecionados na interface
-  if (status !== "all") where.push(eq(tickets.status, status));
-  if (userId !== "all") where.push(eq(tickets.userId, userId));
+  // Filtros
+  const whereConditions = [];
+  if (status !== "all") whereConditions.push(eq(tickets.status, status));
+  if (userId !== "all") whereConditions.push(eq(tickets.userId, userId));
   if (applicationId !== "all")
-    where.push(eq(tickets.applicationId, applicationId));
+    whereConditions.push(eq(tickets.applicationId, applicationId));
 
-  if (dateFrom) where.push(gte(tickets.createdAt, new Date(dateFrom)));
+  if (dateFrom) whereConditions.push(gte(tickets.createdAt, new Date(dateFrom)));
   if (dateTo) {
     const endOfDay = new Date(dateTo);
     endOfDay.setHours(23, 59, 59, 999);
-    where.push(lte(tickets.createdAt, endOfDay));
+    whereConditions.push(lte(tickets.createdAt, endOfDay));
   }
 
   if (q) {
-    where.push(
+    whereConditions.push(
       or(
         ilike(tickets.title, `%${q}%`),
         sql`CAST(${tickets.id} AS TEXT) ILIKE ${`%${q}%`}`,
-      )!,
+      )!
     );
   }
 
-  // Buscamos todos os chamados, usuários e aplicações para os filtros do topo
-  const [allTickets, allUsers, allApplications] = await Promise.all([
-    db.query.tickets.findMany({
-      where: where.length > 0 ? and(...where) : undefined,
-      with: {
-        application: true,
-        company: true,
-        user: true,
-      },
-      orderBy: [desc(tickets.createdAt)],
-    }),
+  const finalWhere = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+  // Busca de dados em paralelo
+  const [totalCountResult, allUsers, allApplications] = await Promise.all([
+    db.select({ total: count() }).from(tickets).where(finalWhere),
     db.query.users.findMany({
       orderBy: (table, { asc }) => [asc(table.name)],
     }),
@@ -105,12 +101,27 @@ export default async function TicketsPage({
     }),
   ]);
 
+  const totalTickets = totalCountResult[0]?.total || 0;
+  const totalPages = Math.ceil(totalTickets / pageSize);
+
+  const filteredTickets = await db.query.tickets.findMany({
+    where: finalWhere,
+    with: {
+      application: true,
+      company: true,
+      user: true,
+    },
+    limit: pageSize,
+    offset: offset,
+    orderBy: [desc(tickets.createdAt)],
+  });
+
   return (
     <PageShell
       title="Gestão Global de Chamados"
       description="Visualize e gerencie todos os tickets de suporte de todas as aplicações e empresas."
     >
-      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-7">
+      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-6">
         <div className="sm:col-span-2 lg:col-span-2">
           <Input
             name="q"
@@ -158,19 +169,35 @@ export default async function TicketsPage({
           ))}
         </select>
 
-        <Input name="dateFrom" type="date" defaultValue={dateFrom} />
-        <Input name="dateTo" type="date" defaultValue={dateTo} />
+        <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-1 lg:col-span-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-1 items-center gap-2 text-sm">
+            <input
+              type="date"
+              name="dateFrom"
+              defaultValue={dateFrom}
+              className="w-full bg-transparent focus:outline-none"
+            />
+            <span className="text-muted-foreground">até</span>
+            <input
+              type="date"
+              name="dateTo"
+              defaultValue={dateTo}
+              className="w-full bg-transparent focus:outline-none"
+            />
+          </div>
+        </div>
 
-        <div className="sm:col-span-2 lg:col-span-7 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="sm:col-span-2 lg:col-span-6 flex flex-col sm:flex-row justify-between items-center gap-4 pt-2 border-t">
           <div className="text-xs text-muted-foreground order-2 sm:order-1">
-            Exibindo {allTickets.length} chamado(s) encontrado(s).
+            Exibindo {offset + 1} a {Math.min(offset + pageSize, totalTickets)} de {totalTickets} chamado(s).
           </div>
           <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
             <Button type="submit" variant="outline" className="flex-1 sm:flex-none">
               Filtrar
             </Button>
             <Button asChild variant="ghost" className="flex-1 sm:flex-none">
-              <a href="/dashboard/tickets">Limpar</a>
+              <Link href="/dashboard/tickets">Limpar</Link>
             </Button>
           </div>
         </div>
@@ -181,7 +208,6 @@ export default async function TicketsPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[100px]">ID</TableHead>
                 <TableHead className="min-w-[200px]">Título</TableHead>
                 <TableHead className="min-w-[120px]">Aplicação</TableHead>
                 <TableHead className="min-w-[150px]">Empresa</TableHead>
@@ -192,21 +218,18 @@ export default async function TicketsPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allTickets.length === 0 ? (
+              {filteredTickets.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={7}
                     className="h-24 text-center text-muted-foreground"
                   >
                     Nenhum chamado encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
-                allTickets.map((ticket) => (
+                filteredTickets.map((ticket) => (
                   <TableRow key={ticket.id}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      #{ticket.id.slice(0, 8)}
-                    </TableCell>
                     <TableCell className="max-w-[200px] truncate font-medium">
                       {ticket.title}
                     </TableCell>
@@ -247,6 +270,48 @@ export default async function TicketsPage({
           </Table>
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Página {page} de {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              asChild={page > 1}
+            >
+              {page > 1 ? (
+                <Link
+                  href={`/dashboard/tickets?page=${page - 1}&q=${q}&status=${status}&userId=${userId}&applicationId=${applicationId}&dateFrom=${dateFrom}&dateTo=${dateTo}`}
+                >
+                  Anterior
+                </Link>
+              ) : (
+                <span>Anterior</span>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              asChild={page < totalPages}
+            >
+              {page < totalPages ? (
+                <Link
+                  href={`/dashboard/tickets?page=${page + 1}&q=${q}&status=${status}&userId=${userId}&applicationId=${applicationId}&dateFrom=${dateFrom}&dateTo=${dateTo}`}
+                >
+                  Próximo
+                </Link>
+              ) : (
+                <span>Próximo</span>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
     </PageShell>
   );
 }

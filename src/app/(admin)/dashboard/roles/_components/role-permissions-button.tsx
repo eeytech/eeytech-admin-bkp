@@ -51,7 +51,7 @@ export function RolePermissionsButton({
         });
         setSelectedPermissions(permissionsMap);
       },
-      onError: () => toast.error("Erro ao carregar permissoes do perfil"),
+      onError: () => toast.error("Erro ao carregar permissões do perfil"),
     },
   );
 
@@ -59,11 +59,11 @@ export function RolePermissionsButton({
     updateRolePermissionsAction,
     {
       onSuccess: () => {
-        toast.success("Permissoes do perfil atualizadas com sucesso");
+        toast.success("Permissões do perfil atualizadas com sucesso");
         setOpen(false);
       },
       onError: ({ error }) =>
-        toast.error(error.serverError || "Erro ao salvar permissoes"),
+        toast.error(error.serverError || "Erro ao salvar permissões"),
     },
   );
 
@@ -103,19 +103,19 @@ export function RolePermissionsButton({
   return (
     <>
       <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
-        Gerenciar Permissoes
+        Gerenciar Permissões
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Gerenciar Permissoes do Perfil</DialogTitle>
+            <DialogTitle>Gerenciar Permissões do Perfil</DialogTitle>
             <DialogDescription>
-              Defina os acessos deste perfil por modulo da aplicacao.
+              Defina os acessos deste perfil por módulo da aplicação.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="relative min-h-[200px] space-y-6 border-t pt-4">
+          <div className="relative min-h-[200px] max-h-[60vh] overflow-y-auto space-y-6 border-t px-1 pt-4">
             {isLoading && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
                 <Loader2 className="animate-spin text-primary" />
@@ -124,7 +124,7 @@ export function RolePermissionsButton({
 
             {!hasModules && !isLoading && (
               <p className="text-center text-sm text-muted-foreground">
-                Esta aplicacao nao possui modulos cadastrados.
+                Esta aplicação não possui módulos cadastrados.
               </p>
             )}
 
@@ -174,7 +174,7 @@ export function RolePermissionsButton({
               disabled={isLoading || isSaving || !hasModules}
             >
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar Permissoes
+              Salvar Permissões
             </Button>
           </div>
         </DialogContent>

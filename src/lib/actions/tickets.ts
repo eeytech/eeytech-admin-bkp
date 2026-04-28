@@ -20,8 +20,8 @@ const ticketStatusSchema = z.enum(TICKET_STATUSES);
 export const createTicketAction = actionClient
   .schema(
     z.object({
-      title: z.string().min(5, "Titulo muito curto"),
-      description: z.string().min(10, "Descricao muito curta"),
+      title: z.string().min(5, "Título muito curto"),
+      description: z.string().min(10, "Descrição muito curta"),
       status: ticketStatusSchema.default(DEFAULT_TICKET_STATUS),
     }),
   )
@@ -46,7 +46,7 @@ export const createTicketAction = actionClient
     ]);
 
     if (!app || !company) {
-      throw new Error("Contexto de aplicacao/empresa invalido");
+      throw new Error("Contexto de aplicação/empresa inválido");
     }
 
     const [newTicket] = await db

@@ -21,7 +21,7 @@ export function TicketInteractions({
 
   const { execute: sendReply, isPending: isReplying } = useAction(replyTicketAction, {
     onSuccess: () => {
-      toast.success("Resposta enviada");
+      toast.success("Resposta enviada com sucesso");
       setContent("");
     },
     onError: ({ error }) => toast.error(error.serverError || "Erro ao enviar resposta"),
@@ -30,7 +30,7 @@ export function TicketInteractions({
   const { execute: changeStatus, isPending: isChangingStatus } = useAction(
     updateTicketStatusAction,
     {
-      onSuccess: () => toast.success("Status atualizado"),
+      onSuccess: () => toast.success("Status atualizado com sucesso"),
       onError: ({ error }) =>
         toast.error(error.serverError || "Erro ao atualizar status"),
     },
@@ -39,7 +39,7 @@ export function TicketInteractions({
   return (
     <div className="space-y-4">
       <div className="rounded-md border p-4">
-        <p className="mb-2 text-sm font-medium">Alterar status</p>
+        <p className="mb-2 text-sm font-medium">Alterar Status</p>
         <div className="flex gap-2">
           <select
             value={status}
@@ -57,17 +57,17 @@ export function TicketInteractions({
             onClick={() => changeStatus({ ticketId, status })}
           >
             {isChangingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar
+            Atualizar
           </Button>
         </div>
       </div>
 
       <div className="rounded-md border p-4">
-        <p className="mb-2 text-sm font-medium">Responder chamado</p>
+        <p className="mb-2 text-sm font-medium">Responder Chamado</p>
         <Textarea
           value={content}
           onChange={(event) => setContent(event.target.value)}
-          placeholder="Digite sua resposta"
+          placeholder="Digite sua resposta detalhada aqui..."
           className="min-h-[120px]"
         />
         <div className="mt-3 flex justify-end">
@@ -78,7 +78,7 @@ export function TicketInteractions({
           >
             {isReplying && <Loader2 className="h-4 w-4 animate-spin" />}
             <Send size={16} />
-            Enviar resposta
+            Enviar Resposta
           </Button>
         </div>
       </div>

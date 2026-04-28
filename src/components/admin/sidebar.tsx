@@ -45,6 +45,7 @@ export function AdminSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [instanceName, setInstanceName] = useState("eeyCore");
 
   useEffect(() => {
     async function loadSession() {
@@ -53,6 +54,9 @@ export function AdminSidebar() {
         if (response.ok) {
           const data = await response.json();
           setUserEmail(data.session?.email || "Admin");
+          if (data.system?.instanceName) {
+            setInstanceName(data.system.instanceName);
+          }
         }
       } catch {
         // no-op
@@ -90,7 +94,7 @@ export function AdminSidebar() {
       <div className={cn("flex items-center justify-between p-4", isCollapsed ? "flex-col gap-4" : "p-6")}>
         {!isCollapsed && (
           <h1 className="text-xl font-bold tracking-tight text-primary truncate">
-            eeyCore
+            {instanceName}
           </h1>
         )}
         <Button
