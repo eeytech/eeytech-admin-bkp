@@ -44,7 +44,7 @@ type NavGroup = {
 
 const navigationGroups: NavGroup[] = [
   {
-    label: "CRM & GestÃ£o",
+    label: "CRM & Gestão",
     items: [
       { name: "Dashboard Financeiro", href: "/dashboard/finance", icon: Landmark },
       { name: "Empresas (Clientes)", href: "/dashboard/companies", icon: Building2 },
@@ -57,20 +57,16 @@ const navigationGroups: NavGroup[] = [
     label: "Acessos & SSO",
     items: [
       { name: "Painel SSO", href: "/dashboard", icon: Blocks },
-      { name: "AplicaÃ§Ãµes", href: "/dashboard/applications", icon: Globe },
+      { name: "Aplicações", href: "/dashboard/applications", icon: Globe },
       { name: "Empresas de Acesso", href: "/dashboard/access-companies", icon: BuildingAccess },
       { name: "Perfis de Acesso", href: "/dashboard/roles", icon: ShieldCheck },
-      { name: "UsuÃ¡rios", href: "/dashboard/users", icon: Users },
+      { name: "Usuários", href: "/dashboard/users", icon: Users },
     ],
   },
   {
     label: "Suporte",
     items: [{ name: "Chamados", href: "/dashboard/tickets", icon: Ticket }],
   },
-];
-
-const utilityItems: NavItem[] = [
-  { name: "ConfiguraÃ§Ãµes", href: "/dashboard/settings", icon: Settings },
 ];
 
 type AdminSidebarProps = {
@@ -176,7 +172,7 @@ export function AdminSidebar({ isCollapsed }: AdminSidebarProps) {
                       className={cn(
                         "group flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all",
                         isActive
-                          ? "bg-zinc-950 text-white shadow-[0_14px_30px_-18px_rgba(9,9,11,0.55)]"
+                          ? "bg-blue-600 text-white shadow-[0_14px_30px_-18px_rgba(37,99,235,0.45)]"
                           : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
                         isCollapsed && "justify-center px-0",
                       )}
@@ -191,33 +187,6 @@ export function AdminSidebar({ isCollapsed }: AdminSidebarProps) {
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="mt-6 border-t border-dashed border-zinc-200 pt-4">
-          <div className="space-y-1">
-            {utilityItems.map((item) => {
-              const isActive =
-                pathname === item.href || pathname?.startsWith(`${item.href}/`);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={isCollapsed ? item.name : ""}
-                  className={cn(
-                    "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all",
-                    isActive
-                      ? "bg-zinc-950 text-white shadow-[0_14px_30px_-18px_rgba(9,9,11,0.55)]"
-                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
-                    isCollapsed && "justify-center px-0",
-                  )}
-                >
-                  <item.icon size={18} className="shrink-0" />
-                  {!isCollapsed && <span className="truncate font-medium">{item.name}</span>}
-                </Link>
-              );
-            })}
-          </div>
         </div>
       </nav>
 
@@ -235,7 +204,7 @@ export function AdminSidebar({ isCollapsed }: AdminSidebarProps) {
                 <span className="text-sm font-semibold">{userInitial}</span>
               </div>
               {!isCollapsed && (
-                <div className="flex min-w-0 flex-col items-start">
+                <div className="flex min-w-0 flex-1 flex-col items-center text-center">
                   <span className="w-full truncate text-sm font-semibold text-zinc-950">
                     eeyTech
                   </span>
@@ -256,7 +225,7 @@ export function AdminSidebar({ isCollapsed }: AdminSidebarProps) {
               onClick={() => router.push("/dashboard/settings")}
             >
               <Settings size={14} className="mr-2" />
-              Configuracoes
+              Configurações
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
