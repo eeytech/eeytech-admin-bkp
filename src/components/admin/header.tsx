@@ -1,15 +1,26 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
+import { ChevronLeft, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
 
 type SessionInfo = {
   companies: { id: string; name: string }[];
   activeCompanyId: string;
 };
 
-export function AdminHeader() {
+type AdminHeaderProps = {
+  isSidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
+};
+
+export function AdminHeader({
+  isSidebarCollapsed,
+  onToggleSidebar,
+}: AdminHeaderProps) {
   const router = useRouter();
   const [isSwitchingCompany, setIsSwitchingCompany] = useState(false);
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
@@ -74,9 +85,15 @@ export function AdminHeader() {
   return (
     <header className="h-16 border-b bg-background flex items-center justify-between px-8 sticky top-0 z-10">
       <div className="flex items-center gap-4">
-        <span className="text-sm text-muted-foreground font-medium">
-          Painel Administrativo
-        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggleSidebar}
+          className="h-9 w-9 rounded-xl text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+          aria-label={isSidebarCollapsed ? "Expandir menu" : "Ocultar menu"}
+        >
+          {isSidebarCollapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
+        </Button>
       </div>
 
       <div className="flex items-center gap-4">

@@ -9,18 +9,15 @@ import {
   Blocks,
   Building2,
   Building2 as BuildingAccess,
-  ChevronLeft,
   FileText,
   Globe,
   Landmark,
   Loader2,
   LogOut,
-  Menu,
   Receipt,
   Settings,
   ShieldCheck,
   Ticket,
-  User,
   Users,
 } from "lucide-react";
 
@@ -30,7 +27,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -48,7 +44,7 @@ type NavGroup = {
 
 const navigationGroups: NavGroup[] = [
   {
-    label: "CRM & Gestão",
+    label: "CRM & GestÃ£o",
     items: [
       { name: "Dashboard Financeiro", href: "/dashboard/finance", icon: Landmark },
       { name: "Empresas (Clientes)", href: "/dashboard/companies", icon: Building2 },
@@ -61,10 +57,10 @@ const navigationGroups: NavGroup[] = [
     label: "Acessos & SSO",
     items: [
       { name: "Painel SSO", href: "/dashboard", icon: Blocks },
-      { name: "Aplicações", href: "/dashboard/applications", icon: Globe },
+      { name: "AplicaÃ§Ãµes", href: "/dashboard/applications", icon: Globe },
       { name: "Empresas de Acesso", href: "/dashboard/access-companies", icon: BuildingAccess },
       { name: "Perfis de Acesso", href: "/dashboard/roles", icon: ShieldCheck },
-      { name: "Usuários", href: "/dashboard/users", icon: Users },
+      { name: "UsuÃ¡rios", href: "/dashboard/users", icon: Users },
     ],
   },
   {
@@ -74,16 +70,20 @@ const navigationGroups: NavGroup[] = [
 ];
 
 const utilityItems: NavItem[] = [
-  { name: "Configurações", href: "/dashboard/settings", icon: Settings },
+  { name: "ConfiguraÃ§Ãµes", href: "/dashboard/settings", icon: Settings },
 ];
 
-export function AdminSidebar() {
+type AdminSidebarProps = {
+  isCollapsed: boolean;
+};
+
+export function AdminSidebar({ isCollapsed }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [instanceName, setInstanceName] = useState("eeyCore");
+  const userInitial = (userEmail?.trim().charAt(0) || "A").toUpperCase();
 
   useEffect(() => {
     async function loadSession() {
@@ -133,45 +133,21 @@ export function AdminSidebar() {
       <div
         className={cn(
           "border-b border-zinc-200/80 px-4 py-5",
-          isCollapsed ? "flex flex-col items-center gap-4" : "px-5",
+          isCollapsed ? "py-4" : "px-5",
         )}
       >
-        <div className={cn("flex items-center justify-between", isCollapsed && "w-full flex-col gap-4")}>
+        <div className={cn("flex items-center", isCollapsed ? "justify-center" : "justify-start")}>
           {!isCollapsed && (
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-300 bg-zinc-950 text-sm font-semibold text-white">
-                  EY
-                </div>
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                    eeyTech
-                  </p>
-                  <h1 className="text-lg font-semibold tracking-tight text-zinc-950">
-                    {instanceName}
-                  </h1>
-                </div>
-              </div>
-              <p className="text-xs text-zinc-500">
-                CRM, identidade e suporte em um único painel.
-              </p>
-            </div>
+            <h1 className="text-lg font-semibold tracking-tight text-zinc-950">
+              {instanceName}
+            </h1>
           )}
 
           {isCollapsed && (
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-300 bg-zinc-950 text-sm font-semibold text-white">
-              EY
+            <div className="flex h-10 min-w-10 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-100 px-2 text-sm font-semibold text-zinc-700">
+              {instanceName.slice(0, 2).toUpperCase()}
             </div>
           )}
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="h-9 w-9 rounded-xl text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
-          >
-            {isCollapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
-          </Button>
         </div>
       </div>
 
@@ -256,12 +232,12 @@ export function AdminSidebar() {
               )}
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-100 text-zinc-700">
-                <User size={18} />
+                <span className="text-sm font-semibold">{userInitial}</span>
               </div>
               {!isCollapsed && (
                 <div className="flex min-w-0 flex-col items-start">
                   <span className="w-full truncate text-sm font-semibold text-zinc-950">
-                    Minha conta
+                    eeyTech
                   </span>
                   <span className="w-full truncate text-xs text-zinc-500">
                     {userEmail || "Carregando..."}
@@ -275,17 +251,12 @@ export function AdminSidebar() {
             side={isCollapsed ? "right" : "top"}
             className="w-56"
           >
-            <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
-            <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => router.push("/dashboard/profile")}
               className="cursor-pointer"
+              onClick={() => router.push("/dashboard/settings")}
             >
-              <User size={14} className="mr-2" />
-              Perfil
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
-              Logs de acesso
+              <Settings size={14} className="mr-2" />
+              Configuracoes
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
