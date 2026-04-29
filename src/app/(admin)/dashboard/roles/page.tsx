@@ -66,9 +66,6 @@ export default async function RolesPage({
     orderBy: (table, { desc }) => [desc(table.createdAt)],
   });
 
-  const startItem = totalRoles === 0 ? 0 : offset + 1;
-  const endItem = totalRoles === 0 ? 0 : offset + filteredRoles.length;
-
   const allApps = await db.query.applications.findMany({
     orderBy: (table, { asc }) => [asc(table.name)],
   });
@@ -148,14 +145,9 @@ export default async function RolesPage({
       </div>
 
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">
-            Página {currentPage} de {totalPages}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Mostrando {startItem}-{endItem} de {totalRoles} perfis
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Página {currentPage} de {totalPages}
+        </p>
         <div className="flex gap-2">
           <Button
             variant="outline"

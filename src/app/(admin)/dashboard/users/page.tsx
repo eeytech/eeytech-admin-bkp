@@ -87,9 +87,6 @@ export default async function UsersPage({
     orderBy: [desc(users.createdAt)],
   });
 
-  const startItem = totalUsers === 0 ? 0 : offset + 1;
-  const endItem = totalUsers === 0 ? 0 : offset + filteredUsers.length;
-
   const activeApplications = allApplications.filter((application) => application.isActive);
   if (activeApplications.length === 0) {
     activeApplications.push(...allApplications);
@@ -247,14 +244,9 @@ export default async function UsersPage({
       </div>
 
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">
-            Página {currentPage} de {totalPages}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Mostrando {startItem}-{endItem} de {totalUsers} usuários
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Página {currentPage} de {totalPages}
+        </p>
         <div className="flex gap-2">
           <Button
             variant="outline"

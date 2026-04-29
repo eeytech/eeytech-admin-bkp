@@ -1,14 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import { and, desc, eq, ilike, or, count } from "drizzle-orm";
+import { and, count, desc, eq, ilike } from "drizzle-orm";
 import dayjs from "dayjs";
 import Link from "next/link";
-import { db } from "@/lib/db";
-import { applications } from "@/lib/db/schema";
+
 import { AutoSubmitForm } from "@/components/admin/auto-submit-form";
-import { PageShell } from "@/components/admin/page-shell";
 import { CreateAppModal } from "@/components/admin/create-app-modal";
-import { ApplicationActions } from "./_components/application-actions";
+import { PageShell } from "@/components/admin/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +18,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { db } from "@/lib/db";
+import { applications } from "@/lib/db/schema";
+
+import { ApplicationActions } from "./_components/application-actions";
 
 export default async function ApplicationsPage({
   searchParams,
@@ -31,9 +33,7 @@ export default async function ApplicationsPage({
   const status = filters.status ?? "all";
   const page = Math.max(1, parseInt(filters.page ?? "1"));
   const pageSize = 10;
-  const offset = (page - 1) * pageSize;
 
-  // Filtros
   const whereConditions = [];
   if (q) {
     whereConditions.push(ilike(applications.name, `%${q}%`));
@@ -44,20 +44,32 @@ export default async function ApplicationsPage({
 
   const finalWhere = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-  // Busca de dados em paralelo
   const [totalCountResult, filteredApplications] = await Promise.all([
     db.select({ total: count() }).from(applications).where(finalWhere),
     db.query.applications.findMany({
       where: finalWhere,
       with: { modules: true, companies: true },
       limit: pageSize,
-      offset: offset,
+      offset: (Math.max(1, page) - 1) * pageSize,
       orderBy: [desc(applications.createdAt)],
-    })
+    }),
   ]);
 
   const totalApplications = totalCountResult[0]?.total || 0;
-  const totalPages = Math.ceil(totalApplications / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalApplications / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const offset = (currentPage - 1) * pageSize;
+
+  const pagedApplications =
+    currentPage === page
+      ? filteredApplications
+      : await db.query.applications.findMany({
+          where: finalWhere,
+          with: { modules: true, companies: true },
+          limit: pageSize,
+          offset,
+          orderBy: [desc(applications.createdAt)],
+        });
 
   return (
     <PageShell
@@ -80,7 +92,7 @@ export default async function ApplicationsPage({
         </select>
       </AutoSubmitForm>
 
-      <div className="rounded-md border bg-card overflow-hidden">
+      <div className="overflow-hidden rounded-md border bg-card">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -95,17 +107,14 @@ export default async function ApplicationsPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredApplications.length === 0 ? (
+              {pagedApplications.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="h-24 text-center text-muted-foreground"
-                  >
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                     Nenhuma aplicação encontrada.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredApplications.map((app) => (
+                pagedApplications.map((app) => (
                   <TableRow key={app.id}>
                     <TableCell className="font-medium">{app.name}</TableCell>
                     <TableCell>
@@ -146,49 +155,41 @@ export default async function ApplicationsPage({
         </div>
       </div>
 
-      {totalPages > 1 && (
-        <div className="mt-4 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Página {page} de {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                asChild={page > 1}
-              >
-                {page > 1 ? (
-                  <Link
-                    href={`/dashboard/applications?page=${page - 1}&q=${q}&status=${status}`}
-                  >
-                    Anterior
-                  </Link>
-                ) : (
-                  <span>Anterior</span>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                asChild={page < totalPages}
-              >
-                {page < totalPages ? (
-                  <Link
-                    href={`/dashboard/applications?page=${page + 1}&q=${q}&status=${status}`}
-                  >
-                    Próximo
-                  </Link>
-                ) : (
-                  <span>Próximo</span>
-                )}
-              </Button>
-            </div>
-          </div>
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Página {currentPage} de {totalPages}
+        </p>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage <= 1}
+            asChild={currentPage > 1}
+          >
+            {currentPage > 1 ? (
+              <Link href={`/dashboard/applications?page=${currentPage - 1}&q=${q}&status=${status}`}>
+                Anterior
+              </Link>
+            ) : (
+              <span>Anterior</span>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage >= totalPages}
+            asChild={currentPage < totalPages}
+          >
+            {currentPage < totalPages ? (
+              <Link href={`/dashboard/applications?page=${currentPage + 1}&q=${q}&status=${status}`}>
+                Próximo
+              </Link>
+            ) : (
+              <span>Próximo</span>
+            )}
+          </Button>
         </div>
-      )}
+      </div>
     </PageShell>
   );
 }

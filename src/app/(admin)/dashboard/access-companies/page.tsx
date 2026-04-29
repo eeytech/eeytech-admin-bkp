@@ -1,14 +1,16 @@
 export const dynamic = "force-dynamic";
 
 import dayjs from "dayjs";
-import { count, desc, eq, sql } from "drizzle-orm";
-import Link from "next/link";
+import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { Building2, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 
+import { AutoSubmitForm } from "@/components/admin/auto-submit-form";
 import { PageShell } from "@/components/admin/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -21,52 +23,94 @@ import { db } from "@/lib/db";
 import { applications, companies, userCompanies } from "@/lib/db/schema";
 import { requireModulePermission } from "@/lib/permissions/mbac";
 
-export default async function AccessCompaniesPage() {
+export default async function AccessCompaniesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    q?: string;
+    applicationId?: string;
+    status?: string;
+    page?: string;
+  }>;
+}) {
   await requireModulePermission("companies", "READ", "eeytech-admin");
 
-  const [rows, [totalRow], [activeRow], [linkedUsersRow], appsWithCompanies] =
+  const filters = await searchParams;
+  const q = (filters.q ?? "").trim();
+  const applicationId = filters.applicationId ?? "all";
+  const status = filters.status ?? "all";
+  const page = Math.max(1, parseInt(filters.page ?? "1"));
+  const pageSize = 10;
+
+  const whereConditions = [];
+  if (q) {
+    whereConditions.push(
+      or(ilike(companies.name, `%${q}%`), ilike(companies.cnpj, `%${q}%`)),
+    );
+  }
+  if (applicationId !== "all") {
+    whereConditions.push(eq(companies.applicationId, applicationId));
+  }
+  if (status !== "all") {
+    whereConditions.push(eq(companies.status, status));
+  }
+
+  const finalWhere = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+  const [[totalRow], [activeRow], [linkedUsersRow], appOptions, [totalCountResult]] =
     await Promise.all([
-      db
-        .select({
-          id: companies.id,
-          name: companies.name,
-          cnpj: companies.cnpj,
-          status: companies.status,
-          createdAt: companies.createdAt,
-          applicationId: applications.id,
-          applicationName: applications.name,
-          linkedUsers: sql<number>`count(${userCompanies.userId})`,
-        })
-        .from(companies)
-        .innerJoin(applications, eq(companies.applicationId, applications.id))
-        .leftJoin(userCompanies, eq(userCompanies.companyId, companies.id))
-        .groupBy(
-          companies.id,
-          companies.name,
-          companies.cnpj,
-          companies.status,
-          companies.createdAt,
-          applications.id,
-          applications.name,
-        )
-        .orderBy(desc(companies.createdAt)),
       db.select({ total: count() }).from(companies),
-      db
-        .select({ total: count() })
-        .from(companies)
-        .where(eq(companies.status, "active")),
+      db.select({ total: count() }).from(companies).where(eq(companies.status, "active")),
       db.select({ total: count() }).from(userCompanies),
-      db
-        .selectDistinct({
-          applicationId: applications.id,
-        })
-        .from(companies)
-        .innerJoin(applications, eq(companies.applicationId, applications.id)),
+      db.query.applications.findMany({
+        orderBy: (table, { asc }) => [asc(table.name)],
+      }),
+      db.select({ total: count() }).from(companies).where(finalWhere),
     ]);
+
+  const totalCompanies = totalCountResult?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(totalCompanies / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const offset = (currentPage - 1) * pageSize;
+
+  const rows = await db
+    .select({
+      id: companies.id,
+      name: companies.name,
+      cnpj: companies.cnpj,
+      status: companies.status,
+      createdAt: companies.createdAt,
+      applicationId: applications.id,
+      applicationName: applications.name,
+      linkedUsers: sql<number>`count(${userCompanies.userId})`,
+    })
+    .from(companies)
+    .innerJoin(applications, eq(companies.applicationId, applications.id))
+    .leftJoin(userCompanies, eq(userCompanies.companyId, companies.id))
+    .where(finalWhere)
+    .groupBy(
+      companies.id,
+      companies.name,
+      companies.cnpj,
+      companies.status,
+      companies.createdAt,
+      applications.id,
+      applications.name,
+    )
+    .orderBy(desc(companies.createdAt))
+    .limit(pageSize)
+    .offset(offset);
+
+  const appsWithCompanies = await db
+    .selectDistinct({
+      applicationId: applications.id,
+    })
+    .from(companies)
+    .innerJoin(applications, eq(companies.applicationId, applications.id));
 
   return (
     <PageShell
-      title="Empresas de acesso"
+      title="Empresas de Acesso"
       description="Gerencie as empresas vinculadas às aplicações para contexto de login, permissões e escopo de usuários."
     >
       <div className="grid gap-4 md:grid-cols-3">
@@ -107,7 +151,39 @@ export default async function AccessCompaniesPage() {
         </Card>
       </div>
 
-      <div className="mt-4 rounded-md border bg-card overflow-hidden">
+      <AutoSubmitForm className="mb-4 mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-7 xl:items-center">
+        <div className="sm:col-span-2 xl:col-span-3">
+          <Input
+            name="q"
+            placeholder="Buscar por empresa ou CNPJ"
+            defaultValue={q}
+            className="h-9"
+          />
+        </div>
+        <select
+          name="applicationId"
+          defaultValue={applicationId}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring xl:col-span-2"
+        >
+          <option value="all">Todas as aplicações</option>
+          {appOptions.map((app) => (
+            <option key={app.id} value={app.id}>
+              {app.name}
+            </option>
+          ))}
+        </select>
+        <select
+          name="status"
+          defaultValue={status}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring xl:col-span-2"
+        >
+          <option value="all">Todos os status</option>
+          <option value="active">Ativas</option>
+          <option value="inactive">Inativas</option>
+        </select>
+      </AutoSubmitForm>
+
+      <div className="overflow-hidden rounded-md border bg-card">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -149,7 +225,7 @@ export default async function AccessCompaniesPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>{Number(row.linkedUsers)}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                       {dayjs(row.createdAt).format("DD/MM/YYYY")}
                     </TableCell>
                     <TableCell className="text-right">
@@ -176,10 +252,54 @@ export default async function AccessCompaniesPage() {
         </div>
       </div>
 
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Página {currentPage} de {totalPages}
+        </p>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage <= 1}
+            asChild={currentPage > 1}
+          >
+            {currentPage > 1 ? (
+              <Link
+                href={`/dashboard/access-companies?page=${currentPage - 1}&q=${q}&applicationId=${applicationId}&status=${status}`}
+              >
+                Anterior
+              </Link>
+            ) : (
+              <span>Anterior</span>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage >= totalPages}
+            asChild={currentPage < totalPages}
+          >
+            {currentPage < totalPages ? (
+              <Link
+                href={`/dashboard/access-companies?page=${currentPage + 1}&q=${q}&applicationId=${applicationId}&status=${status}`}
+              >
+                Próximo
+              </Link>
+            ) : (
+              <span>Próximo</span>
+            )}
+          </Button>
+        </div>
+      </div>
+
       <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/70 p-4 text-sm text-muted-foreground">
         As empresas desta área definem o escopo operacional das aplicações e o contexto
         de acesso dos usuários. Para contratos, pagamentos e relacionamento comercial,
-        use a área de <Link href="/dashboard/companies" className="font-medium text-primary hover:underline">Empresas (Clientes)</Link>.
+        use a área de{" "}
+        <Link href="/dashboard/companies" className="font-medium text-primary hover:underline">
+          Empresas (Clientes)
+        </Link>
+        .
       </div>
     </PageShell>
   );
