@@ -80,6 +80,10 @@ export function AdminSidebar({ isCollapsed }: AdminSidebarProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [instanceName, setInstanceName] = useState("eeyCore");
   const userInitial = (userEmail?.trim().charAt(0) || "A").toUpperCase();
+  const isItemActive = (href: string) =>
+    href === "/dashboard"
+      ? pathname === href
+      : pathname === href || pathname?.startsWith(`${href}/`);
 
   useEffect(() => {
     async function loadSession() {
@@ -161,8 +165,7 @@ export function AdminSidebar({ isCollapsed }: AdminSidebarProps) {
 
               <div className="space-y-1">
                 {group.items.map((item) => {
-                  const isActive =
-                    pathname === item.href || pathname?.startsWith(`${item.href}/`);
+                  const isActive = isItemActive(item.href);
 
                   return (
                     <Link
@@ -229,7 +232,7 @@ export function AdminSidebar({ isCollapsed }: AdminSidebarProps) {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="cursor-pointer text-destructive focus:bg-destructive focus:text-destructive-foreground"
+              className="cursor-pointer text-destructive focus:bg-destructive focus:text-destructive-foreground [&_svg]:text-current"
               onClick={handleLogout}
               disabled={isLoggingOut}
             >

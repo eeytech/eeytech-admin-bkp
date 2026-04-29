@@ -34,7 +34,8 @@ function statusBadge(status: string) {
       <Badge className="bg-blue-500 hover:bg-blue-600">Em atendimento</Badge>
     );
   }
-  if (status === "Resolvido") return <Badge variant="secondary">Resolvido</Badge>;
+  if (status === "Resolvido")
+    return <Badge variant="secondary">Resolvido</Badge>;
   if (status === "Cancelado") return <Badge variant="outline">Cancelado</Badge>;
   return <Badge variant="outline">{status}</Badge>;
 }
@@ -73,7 +74,8 @@ export default async function TicketsPage({
   if (applicationId !== "all")
     whereConditions.push(eq(tickets.applicationId, applicationId));
 
-  if (dateFrom) whereConditions.push(gte(tickets.createdAt, new Date(dateFrom)));
+  if (dateFrom)
+    whereConditions.push(gte(tickets.createdAt, new Date(dateFrom)));
   if (dateTo) {
     const endOfDay = new Date(dateTo);
     endOfDay.setHours(23, 59, 59, 999);
@@ -85,11 +87,12 @@ export default async function TicketsPage({
       or(
         ilike(tickets.title, `%${q}%`),
         sql`CAST(${tickets.id} AS TEXT) ILIKE ${`%${q}%`}`,
-      )!
+      )!,
     );
   }
 
-  const finalWhere = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+  const finalWhere =
+    whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
   // Busca de dados em paralelo
   const [totalCountResult, allUsers, allApplications] = await Promise.all([
@@ -119,10 +122,10 @@ export default async function TicketsPage({
 
   return (
     <PageShell
-      title="Gestão Global de Chamados"
+      title="Gestão de Chamados"
       description="Visualize e gerencie todos os tickets de suporte de todas as aplicações e empresas."
     >
-      <TicketFilters 
+      <TicketFilters
         initialFilters={{ q, status, userId, applicationId, dateFrom, dateTo }}
         users={allUsers}
         applications={allApplications}
@@ -155,7 +158,9 @@ export default async function TicketsPage({
               ) : (
                 filteredTickets.map((ticket) => (
                   <TableRow key={ticket.id}>
-                    <TableCell className="font-medium">{ticket.title}</TableCell>
+                    <TableCell className="font-medium">
+                      {ticket.title}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{ticket.application.name}</Badge>
                     </TableCell>

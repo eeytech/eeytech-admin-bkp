@@ -3,8 +3,7 @@ export const dynamic = "force-dynamic";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/admin/page-shell";
 import { CreateRoleModal } from "@/components/admin/create-role-modal";
-import { RolePermissionsButton } from "./_components/role-permissions-button";
-import { RoleDeleteButton } from "./_components/role-delete-button";
+import { RoleActionsDropdown } from "./_components/role-actions-dropdown";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,20 +34,21 @@ export default async function RolesPage({
   const whereConditions = [];
   if (q) {
     whereConditions.push(
-      or(ilike(roles.name, `%${q}%`), ilike(roles.slug, `%${q}%`))
+      or(ilike(roles.name, `%${q}%`), ilike(roles.slug, `%${q}%`)),
     );
   }
   if (applicationId !== "all") {
     whereConditions.push(eq(roles.applicationId, applicationId));
   }
 
-  const finalWhere = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+  const finalWhere =
+    whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
   const [totalCountResult] = await db
     .select({ total: count() })
     .from(roles)
     .where(finalWhere);
-  
+
   const totalRoles = totalCountResult?.total || 0;
   const totalPages = Math.ceil(totalRoles / pageSize);
 
@@ -71,7 +71,7 @@ export default async function RolesPage({
 
   return (
     <PageShell
-      title="Perfis"
+      title="Gestão de Perfis"
       description="Gerencie perfis por aplicação e permissões por módulo."
       action={<CreateRoleModal applications={allApps} />}
     >
@@ -125,7 +125,9 @@ export default async function RolesPage({
                   <TableRow key={role.id}>
                     <TableCell className="font-medium">
                       <div className="flex flex-col">
-                        <span className="truncate max-w-[150px]">{role.name}</span>
+                        <span className="truncate max-w-[150px]">
+                          {role.name}
+                        </span>
                         <span className="font-mono text-[10px] uppercase text-muted-foreground">
                           {role.slug}
                         </span>
@@ -138,13 +140,11 @@ export default async function RolesPage({
                     </TableCell>
                     <TableCell>{role.permissions.length}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <RolePermissionsButton
-                          roleId={role.id}
-                          modules={role.application.modules}
-                        />
-                        <RoleDeleteButton roleId={role.id} roleName={role.name} />
-                      </div>
+                      <RoleActionsDropdown
+                        roleId={role.id}
+                        roleName={role.name}
+                        modules={role.application.modules}
+                      />
                     </TableCell>
                   </TableRow>
                 ))
@@ -200,4 +200,3 @@ export default async function RolesPage({
     </PageShell>
   );
 }
-

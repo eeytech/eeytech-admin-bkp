@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Input } from "@/components/ui/input"
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
-import Link from "next/link"
+import { Input } from "@/components/ui/input"
 
 interface TicketFiltersProps {
   initialFilters: {
@@ -21,36 +21,38 @@ interface TicketFiltersProps {
 }
 
 export function TicketFilters({ initialFilters, users, applications }: TicketFiltersProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  
   const [date, setDate] = React.useState<{ from?: string; to?: string } | undefined>({
     from: initialFilters.dateFrom,
-    to: initialFilters.dateTo
+    to: initialFilters.dateTo,
   })
 
   // Sincroniza o estado local se os searchParams mudarem externamente (ex: Limpar)
   React.useEffect(() => {
     setDate({
       from: initialFilters.dateFrom,
-      to: initialFilters.dateTo
+      to: initialFilters.dateTo,
     })
   }, [initialFilters.dateFrom, initialFilters.dateTo])
 
   return (
-    <form action="/dashboard/tickets" method="GET" className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-6">
-      <div className="sm:col-span-2 lg:col-span-2">
+    <form
+      action="/dashboard/tickets"
+      method="GET"
+      className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 xl:grid-cols-12 xl:items-center"
+    >
+      <div className="sm:col-span-2 xl:col-span-2">
         <Input
           name="q"
           placeholder="Buscar por título ou ID"
           defaultValue={initialFilters.q}
+          className="h-9"
         />
       </div>
 
       <select
         name="applicationId"
         defaultValue={initialFilters.applicationId || "all"}
-        className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
       >
         <option value="all">Todas as aplicações</option>
         {applications.map((app) => (
@@ -63,7 +65,7 @@ export function TicketFilters({ initialFilters, users, applications }: TicketFil
       <select
         name="status"
         defaultValue={initialFilters.status || "all"}
-        className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
       >
         <option value="all">Todos os status</option>
         <option value="Aberto">Aberto</option>
@@ -75,7 +77,7 @@ export function TicketFilters({ initialFilters, users, applications }: TicketFil
       <select
         name="userId"
         defaultValue={initialFilters.userId || "all"}
-        className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
       >
         <option value="all">Todos os usuários</option>
         {users.map((user) => (
@@ -85,26 +87,26 @@ export function TicketFilters({ initialFilters, users, applications }: TicketFil
         ))}
       </select>
 
-      {/* DateRangePicker integrando com inputs escondidos para o Form nativo */}
-      <div className="lg:col-span-2">
-        <DateRangePicker 
-          value={date} 
-          onChange={setDate} 
+      <div className="xl:col-span-3">
+        <DateRangePicker
+          className="h-9"
+          value={date}
+          onChange={setDate}
           placeholder="Filtrar por período"
         />
         <input type="hidden" name="dateFrom" value={date?.from || ""} />
         <input type="hidden" name="dateTo" value={date?.to || ""} />
       </div>
 
-      <div className="sm:col-span-2 lg:col-span-6 flex flex-col sm:flex-row justify-between items-center gap-4 pt-2 border-t">
+      <div className="sm:col-span-2 xl:col-span-3 flex flex-col sm:flex-row xl:flex-nowrap justify-end items-center gap-2 pt-2 border-t xl:border-t-0 xl:pt-0">
         <div className="text-xs text-muted-foreground order-2 sm:order-1">
           {/* O contador será exibido no componente pai */}
         </div>
         <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
-          <Button type="submit" variant="outline" className="flex-1 sm:flex-none">
+          <Button type="submit" variant="outline" className="flex-1 sm:flex-none xl:flex-1">
             Filtrar
           </Button>
-          <Button asChild variant="ghost" className="flex-1 sm:flex-none">
+          <Button asChild variant="ghost" className="flex-1 sm:flex-none xl:flex-1">
             <Link href="/dashboard/tickets">Limpar</Link>
           </Button>
         </div>

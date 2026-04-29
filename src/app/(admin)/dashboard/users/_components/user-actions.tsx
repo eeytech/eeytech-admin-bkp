@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, UserCheck, UserX } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -193,7 +193,7 @@ export function UserActions({
             className="gap-2 cursor-pointer"
             onClick={() => setShowEditModal(true)}
           >
-            <Pencil size={14} /> Editar dados e acessos
+            <Pencil size={14} /> Editar Conta
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -203,12 +203,13 @@ export function UserActions({
               toggleActive({ userId: user.id, isActive: !user.isActive })
             }
           >
+            {user.isActive ? <UserX size={14} /> : <UserCheck size={14} />}
             {user.isActive ? "Desativar Conta" : "Ativar Conta"}
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="text-destructive cursor-pointer"
+            className="cursor-pointer text-destructive [&_svg]:text-current"
             disabled={isDeleting}
             onClick={() => {
               if (confirm(`Excluir o usuário ${user.email}?`)) {
@@ -222,7 +223,7 @@ export function UserActions({
       </DropdownMenu>
 
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
             <DialogDescription>
@@ -231,8 +232,12 @@ export function UserActions({
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(submitEdit)} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <form
+              onSubmit={form.handleSubmit(submitEdit)}
+              className="flex min-h-0 flex-col overflow-hidden"
+            >
+              <div className="space-y-4 overflow-y-auto pr-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="name"
@@ -410,7 +415,9 @@ export function UserActions({
                 />
               )}
 
-              <DialogFooter>
+              </div>
+
+              <DialogFooter className="border-t pt-4">
                 <Button type="submit" disabled={isUpdating}>
                   Salvar
                 </Button>
