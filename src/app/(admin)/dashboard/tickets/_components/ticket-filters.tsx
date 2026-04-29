@@ -1,9 +1,7 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 
-import { Button } from "@/components/ui/button"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { Input } from "@/components/ui/input"
 
@@ -21,30 +19,80 @@ interface TicketFiltersProps {
 }
 
 export function TicketFilters({ initialFilters, users, applications }: TicketFiltersProps) {
+  const formRef = React.useRef<HTMLFormElement>(null)
+  const firstQueryRenderRef = React.useRef(true)
+  const firstDateRenderRef = React.useRef(true)
+  const syncingQueryFromPropsRef = React.useRef(false)
+  const syncingDateFromPropsRef = React.useRef(false)
+
+  const [query, setQuery] = React.useState(initialFilters.q ?? "")
   const [date, setDate] = React.useState<{ from?: string; to?: string } | undefined>({
     from: initialFilters.dateFrom,
     to: initialFilters.dateTo,
   })
 
-  // Sincroniza o estado local se os searchParams mudarem externamente (ex: Limpar)
   React.useEffect(() => {
+    syncingQueryFromPropsRef.current = true
+    setQuery(initialFilters.q ?? "")
+  }, [initialFilters.q])
+
+  React.useEffect(() => {
+    syncingDateFromPropsRef.current = true
     setDate({
       from: initialFilters.dateFrom,
       to: initialFilters.dateTo,
     })
   }, [initialFilters.dateFrom, initialFilters.dateTo])
 
+  React.useEffect(() => {
+    if (firstQueryRenderRef.current) {
+      firstQueryRenderRef.current = false
+      return
+    }
+
+    if (syncingQueryFromPropsRef.current) {
+      syncingQueryFromPropsRef.current = false
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      formRef.current?.requestSubmit()
+    }, 350)
+
+    return () => window.clearTimeout(timeout)
+  }, [query])
+
+  React.useEffect(() => {
+    if (firstDateRenderRef.current) {
+      firstDateRenderRef.current = false
+      return
+    }
+
+    if (syncingDateFromPropsRef.current) {
+      syncingDateFromPropsRef.current = false
+      return
+    }
+
+    formRef.current?.requestSubmit()
+  }, [date])
+
+  const submitFilters = () => {
+    formRef.current?.requestSubmit()
+  }
+
   return (
     <form
+      ref={formRef}
       action="/dashboard/tickets"
       method="GET"
-      className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 xl:grid-cols-12 xl:items-center"
+      className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-12 xl:items-center"
     >
-      <div className="sm:col-span-2 xl:col-span-2">
+      <div className="sm:col-span-2 xl:col-span-3">
         <Input
           name="q"
           placeholder="Buscar por título ou ID"
-          defaultValue={initialFilters.q}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
           className="h-9"
         />
       </div>
@@ -52,7 +100,8 @@ export function TicketFilters({ initialFilters, users, applications }: TicketFil
       <select
         name="applicationId"
         defaultValue={initialFilters.applicationId || "all"}
-        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        onChange={submitFilters}
+        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring xl:col-span-2"
       >
         <option value="all">Todas as aplicações</option>
         {applications.map((app) => (
@@ -65,7 +114,8 @@ export function TicketFilters({ initialFilters, users, applications }: TicketFil
       <select
         name="status"
         defaultValue={initialFilters.status || "all"}
-        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        onChange={submitFilters}
+        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring xl:col-span-2"
       >
         <option value="all">Todos os status</option>
         <option value="Aberto">Aberto</option>
@@ -77,7 +127,8 @@ export function TicketFilters({ initialFilters, users, applications }: TicketFil
       <select
         name="userId"
         defaultValue={initialFilters.userId || "all"}
-        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        onChange={submitFilters}
+        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring xl:col-span-3"
       >
         <option value="all">Todos os usuários</option>
         {users.map((user) => (
@@ -87,29 +138,14 @@ export function TicketFilters({ initialFilters, users, applications }: TicketFil
         ))}
       </select>
 
-      <div className="xl:col-span-3">
+      <div className="xl:col-span-2">
         <DateRangePicker
-          className="h-9"
           value={date}
           onChange={setDate}
-          placeholder="Filtrar por período"
+          placeholder="Período"
         />
         <input type="hidden" name="dateFrom" value={date?.from || ""} />
         <input type="hidden" name="dateTo" value={date?.to || ""} />
-      </div>
-
-      <div className="sm:col-span-2 xl:col-span-3 flex flex-col sm:flex-row xl:flex-nowrap justify-end items-center gap-2 pt-2 border-t xl:border-t-0 xl:pt-0">
-        <div className="text-xs text-muted-foreground order-2 sm:order-1">
-          {/* O contador será exibido no componente pai */}
-        </div>
-        <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
-          <Button type="submit" variant="outline" className="flex-1 sm:flex-none xl:flex-1">
-            Filtrar
-          </Button>
-          <Button asChild variant="ghost" className="flex-1 sm:flex-none xl:flex-1">
-            <Link href="/dashboard/tickets">Limpar</Link>
-          </Button>
-        </div>
       </div>
     </form>
   )

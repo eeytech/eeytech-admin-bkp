@@ -1,9 +1,11 @@
 export const dynamic = "force-dynamic";
 
-import { db } from "@/lib/db";
-import { PageShell } from "@/components/admin/page-shell";
+import { and, count, eq, ilike, or } from "drizzle-orm";
+import Link from "next/link";
+
+import { AutoSubmitForm } from "@/components/admin/auto-submit-form";
 import { CreateRoleModal } from "@/components/admin/create-role-modal";
-import { RoleActionsDropdown } from "./_components/role-actions-dropdown";
+import { PageShell } from "@/components/admin/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { and, ilike, or, eq, count } from "drizzle-orm";
+import { db } from "@/lib/db";
 import { roles } from "@/lib/db/schema";
-import Link from "next/link";
+
+import { RoleActionsDropdown } from "./_components/role-actions-dropdown";
 
 export default async function RolesPage({
   searchParams,
@@ -29,20 +32,16 @@ export default async function RolesPage({
   const applicationId = filters.applicationId ?? "all";
   const page = Math.max(1, parseInt(filters.page ?? "1"));
   const pageSize = 10;
-  const offset = (page - 1) * pageSize;
 
   const whereConditions = [];
   if (q) {
-    whereConditions.push(
-      or(ilike(roles.name, `%${q}%`), ilike(roles.slug, `%${q}%`)),
-    );
+    whereConditions.push(or(ilike(roles.name, `%${q}%`), ilike(roles.slug, `%${q}%`)));
   }
   if (applicationId !== "all") {
     whereConditions.push(eq(roles.applicationId, applicationId));
   }
 
-  const finalWhere =
-    whereConditions.length > 0 ? and(...whereConditions) : undefined;
+  const finalWhere = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
   const [totalCountResult] = await db
     .select({ total: count() })
@@ -50,7 +49,9 @@ export default async function RolesPage({
     .where(finalWhere);
 
   const totalRoles = totalCountResult?.total || 0;
-  const totalPages = Math.ceil(totalRoles / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalRoles / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const offset = (currentPage - 1) * pageSize;
 
   const filteredRoles = await db.query.roles.findMany({
     where: finalWhere,
@@ -61,9 +62,12 @@ export default async function RolesPage({
       permissions: true,
     },
     limit: pageSize,
-    offset: offset,
+    offset,
     orderBy: (table, { desc }) => [desc(table.createdAt)],
   });
+
+  const startItem = totalRoles === 0 ? 0 : offset + 1;
+  const endItem = totalRoles === 0 ? 0 : offset + filteredRoles.length;
 
   const allApps = await db.query.applications.findMany({
     orderBy: (table, { asc }) => [asc(table.name)],
@@ -75,12 +79,14 @@ export default async function RolesPage({
       description="Gerencie perfis por aplicação e permissões por módulo."
       action={<CreateRoleModal applications={allApps} />}
     >
-      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Input name="q" placeholder="Buscar por nome" defaultValue={q} />
+      <AutoSubmitForm
+        className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:items-center"
+      >
+        <Input name="q" placeholder="Buscar por nome" defaultValue={q} className="h-9" />
         <select
           name="applicationId"
           defaultValue={applicationId}
-          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="all">Todas as aplicações</option>
           {allApps.map((app) => (
@@ -89,17 +95,9 @@ export default async function RolesPage({
             </option>
           ))}
         </select>
-        <div className="sm:col-span-2 lg:col-span-2 flex flex-col sm:flex-row justify-end gap-2">
-          <Button type="submit" variant="outline" className="w-full sm:w-auto">
-            Filtrar
-          </Button>
-          <Button asChild variant="ghost" className="w-full sm:w-auto">
-            <Link href="/dashboard/roles">Limpar</Link>
-          </Button>
-        </div>
-      </form>
+      </AutoSubmitForm>
 
-      <div className="rounded-md border bg-card overflow-hidden">
+      <div className="overflow-hidden rounded-md border bg-card">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -113,10 +111,7 @@ export default async function RolesPage({
             <TableBody>
               {filteredRoles.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="h-24 text-center text-muted-foreground"
-                  >
+                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                     Nenhum perfil encontrado.
                   </TableCell>
                 </TableRow>
@@ -125,9 +120,7 @@ export default async function RolesPage({
                   <TableRow key={role.id}>
                     <TableCell className="font-medium">
                       <div className="flex flex-col">
-                        <span className="truncate max-w-[150px]">
-                          {role.name}
-                        </span>
+                        <span className="max-w-[150px] truncate">{role.name}</span>
                         <span className="font-mono text-[10px] uppercase text-muted-foreground">
                           {role.slug}
                         </span>
@@ -154,49 +147,50 @@ export default async function RolesPage({
         </div>
       </div>
 
-      {totalPages > 1 && (
-        <div className="mt-4 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Página {page} de {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                asChild={page > 1}
-              >
-                {page > 1 ? (
-                  <Link
-                    href={`/dashboard/roles?page=${page - 1}&q=${q}&applicationId=${applicationId}`}
-                  >
-                    Anterior
-                  </Link>
-                ) : (
-                  <span>Anterior</span>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                asChild={page < totalPages}
-              >
-                {page < totalPages ? (
-                  <Link
-                    href={`/dashboard/roles?page=${page + 1}&q=${q}&applicationId=${applicationId}`}
-                  >
-                    Próximo
-                  </Link>
-                ) : (
-                  <span>Próximo</span>
-                )}
-              </Button>
-            </div>
-          </div>
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">
+            Página {currentPage} de {totalPages}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Mostrando {startItem}-{endItem} de {totalRoles} perfis
+          </p>
         </div>
-      )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage <= 1}
+            asChild={currentPage > 1}
+          >
+            {currentPage > 1 ? (
+              <Link
+                href={`/dashboard/roles?page=${currentPage - 1}&q=${q}&applicationId=${applicationId}`}
+              >
+                Anterior
+              </Link>
+            ) : (
+              <span>Anterior</span>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage >= totalPages}
+            asChild={currentPage < totalPages}
+          >
+            {currentPage < totalPages ? (
+              <Link
+                href={`/dashboard/roles?page=${currentPage + 1}&q=${q}&applicationId=${applicationId}`}
+              >
+                Próximo
+              </Link>
+            ) : (
+              <span>Próximo</span>
+            )}
+          </Button>
+        </div>
+      </div>
     </PageShell>
   );
 }

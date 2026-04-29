@@ -136,9 +136,9 @@ export function AdminSidebar({ isCollapsed }: AdminSidebarProps) {
           isCollapsed ? "py-4" : "px-5",
         )}
       >
-        <div className={cn("flex items-center", isCollapsed ? "justify-center" : "justify-start")}>
+        <div className={cn("flex items-center", isCollapsed ? "justify-center" : "justify-center")}>
           {!isCollapsed && (
-            <h1 className="text-lg font-semibold tracking-tight text-zinc-950">
+            <h1 className="text-center text-lg font-semibold tracking-tight text-zinc-950">
               {instanceName}
             </h1>
           )}
@@ -232,7 +232,8 @@ export function AdminSidebar({ isCollapsed }: AdminSidebarProps) {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="cursor-pointer text-destructive focus:bg-destructive focus:text-destructive-foreground [&_svg]:text-current"
+              variant="destructive"
+              className="cursor-pointer"
               onClick={handleLogout}
               disabled={isLoggingOut}
             >

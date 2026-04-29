@@ -150,7 +150,8 @@ export function RoleActionsDropdown({
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
-            className="cursor-pointer text-destructive [&_svg]:text-current"
+            variant="destructive"
+            className="cursor-pointer"
             onClick={() => setDeleteOpen(true)}
           >
             <Trash2 size={14} />

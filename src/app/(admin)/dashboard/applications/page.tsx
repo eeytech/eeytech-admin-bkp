@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { applications } from "@/lib/db/schema";
+import { AutoSubmitForm } from "@/components/admin/auto-submit-form";
 import { PageShell } from "@/components/admin/page-shell";
 import { CreateAppModal } from "@/components/admin/create-app-modal";
 import { ApplicationActions } from "./_components/application-actions";
@@ -64,26 +65,20 @@ export default async function ApplicationsPage({
       description="Gerencie aplicações, empresas, módulos e disponibilidade."
       action={<CreateAppModal />}
     >
-      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Input name="q" placeholder="Buscar por nome" defaultValue={q} />
+      <AutoSubmitForm
+        className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:items-center"
+      >
+        <Input name="q" placeholder="Buscar por nome" defaultValue={q} className="h-9" />
         <select
           name="status"
           defaultValue={status}
-          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="all">Todos os status</option>
           <option value="active">Ativas</option>
           <option value="inactive">Desativadas</option>
         </select>
-        <div className="sm:col-span-2 lg:col-span-2 flex flex-col sm:flex-row justify-end gap-2">
-          <Button type="submit" variant="outline" className="w-full sm:w-auto">
-            Filtrar
-          </Button>
-          <Button asChild variant="ghost" className="w-full sm:w-auto">
-            <Link href="/dashboard/applications">Limpar</Link>
-          </Button>
-        </div>
-      </form>
+      </AutoSubmitForm>
 
       <div className="rounded-md border bg-card overflow-hidden">
         <div className="overflow-x-auto">

@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import { Eye, Search } from "lucide-react";
 import Link from "next/link";
 
+import { AutoSubmitForm } from "@/components/admin/auto-submit-form";
 import { PageShell } from "@/components/admin/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,15 +68,15 @@ export default async function CompaniesPage({
       action={<CreateCompanyModal applications={apps} />}
     >
       <div className="mb-4 flex items-center gap-2">
-        <form className="relative w-full max-w-sm flex-1">
+        <AutoSubmitForm className="relative w-full max-w-sm flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             name="q"
             placeholder="Buscar cliente, CNPJ ou e-mail..."
-            className="pl-8"
+            className="h-9 pl-8"
             defaultValue={search}
           />
-        </form>
+        </AutoSubmitForm>
       </div>
 
       <div className="overflow-hidden rounded-md border bg-card">

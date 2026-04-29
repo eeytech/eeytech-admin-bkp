@@ -209,7 +209,8 @@ export function UserActions({
 
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="cursor-pointer text-destructive [&_svg]:text-current"
+            variant="destructive"
+            className="cursor-pointer"
             disabled={isDeleting}
             onClick={() => {
               if (confirm(`Excluir o usuário ${user.email}?`)) {

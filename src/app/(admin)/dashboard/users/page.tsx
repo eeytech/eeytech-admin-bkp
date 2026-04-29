@@ -1,14 +1,13 @@
 export const dynamic = "force-dynamic";
 
-import { and, desc, eq, ilike, or, count } from "drizzle-orm";
+import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 import dayjs from "dayjs";
 import { Ban, CheckCircle } from "lucide-react";
 import Link from "next/link";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { PageShell } from "@/components/admin/page-shell";
+
+import { AutoSubmitForm } from "@/components/admin/auto-submit-form";
 import { CreateUserModal } from "@/components/admin/create-user-modal";
-import { UserActions } from "./_components/user-actions";
+import { PageShell } from "@/components/admin/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,11 +19,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+
+import { UserActions } from "./_components/user-actions";
 
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; applicationId?: string; status?: string; page?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    applicationId?: string;
+    status?: string;
+    page?: string;
+  }>;
 }) {
   const filters = await searchParams;
   const q = (filters.q ?? "").trim();
@@ -32,17 +40,10 @@ export default async function UsersPage({
   const filterStatus = filters.status ?? "all";
   const page = Math.max(1, parseInt(filters.page ?? "1"));
   const pageSize = 10;
-  const offset = (page - 1) * pageSize;
 
-  // Filtros
   const whereConditions = [];
   if (q) {
-    whereConditions.push(
-      or(
-        ilike(users.name, `%${q}%`),
-        ilike(users.email, `%${q}%`)
-      )
-    );
+    whereConditions.push(or(ilike(users.name, `%${q}%`), ilike(users.email, `%${q}%`)));
   }
   if (filterApplicationId !== "all") {
     whereConditions.push(eq(users.applicationId, filterApplicationId));
@@ -53,7 +54,6 @@ export default async function UsersPage({
 
   const finalWhere = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-  // Busca de dados em paralelo
   const [totalCountResult, allApplications] = await Promise.all([
     db.select({ total: count() }).from(users).where(finalWhere),
     db.query.applications.findMany({
@@ -70,7 +70,9 @@ export default async function UsersPage({
   ]);
 
   const totalUsers = totalCountResult[0]?.total || 0;
-  const totalPages = Math.ceil(totalUsers / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const offset = (currentPage - 1) * pageSize;
 
   const filteredUsers = await db.query.users.findMany({
     where: finalWhere,
@@ -81,9 +83,12 @@ export default async function UsersPage({
       },
     },
     limit: pageSize,
-    offset: offset,
+    offset,
     orderBy: [desc(users.createdAt)],
   });
+
+  const startItem = totalUsers === 0 ? 0 : offset + 1;
+  const endItem = totalUsers === 0 ? 0 : offset + filteredUsers.length;
 
   const activeApplications = allApplications.filter((application) => application.isActive);
   if (activeApplications.length === 0) {
@@ -113,12 +118,21 @@ export default async function UsersPage({
         />
       }
     >
-      <form className="mb-4 grid grid-cols-1 gap-3 rounded-md border bg-card p-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Input name="q" placeholder="Buscar por nome ou e-mail" defaultValue={q} />
+      <AutoSubmitForm
+        className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-7 xl:items-center"
+      >
+        <div className="sm:col-span-2 xl:col-span-3">
+          <Input
+            name="q"
+            placeholder="Buscar por nome ou e-mail"
+            defaultValue={q}
+            className="h-9"
+          />
+        </div>
         <select
           name="applicationId"
           defaultValue={filterApplicationId}
-          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring xl:col-span-2"
         >
           <option value="all">Todas as aplicações</option>
           {allApplications.map((application) => (
@@ -130,23 +144,15 @@ export default async function UsersPage({
         <select
           name="status"
           defaultValue={filterStatus}
-          className="rounded-md border border-input bg-background p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring xl:col-span-2"
         >
           <option value="all">Todos os status</option>
           <option value="active">Ativos</option>
           <option value="inactive">Desativados</option>
         </select>
-        <div className="sm:col-span-2 lg:col-span-2 flex flex-col sm:flex-row justify-end gap-2">
-          <Button type="submit" variant="outline" className="w-full sm:w-auto">
-            Filtrar
-          </Button>
-          <Button asChild variant="ghost" className="w-full sm:w-auto">
-            <Link href="/dashboard/users">Limpar</Link>
-          </Button>
-        </div>
-      </form>
+      </AutoSubmitForm>
 
-      <div className="rounded-md border bg-card overflow-hidden">
+      <div className="overflow-hidden rounded-md border bg-card">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -163,10 +169,7 @@ export default async function UsersPage({
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="h-24 text-center text-muted-foreground"
-                  >
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                     Nenhum usuário encontrado.
                   </TableCell>
                 </TableRow>
@@ -174,15 +177,17 @@ export default async function UsersPage({
                 filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell className="truncate max-w-[180px]">{user.email}</TableCell>
+                    <TableCell className="max-w-[180px] truncate">{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="whitespace-nowrap">{user.application.name}</Badge>
+                      <Badge variant="outline" className="whitespace-nowrap">
+                        {user.application.name}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       {user.isApplicationAdmin ? (
                         <Badge>Administrador Global</Badge>
                       ) : (
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        <span className="whitespace-nowrap text-sm text-muted-foreground">
                           {user.companies.length} empresa(s)
                         </span>
                       )}
@@ -191,7 +196,7 @@ export default async function UsersPage({
                       {user.isActive ? (
                         <Badge
                           variant="outline"
-                          className="gap-1 border-green-200 bg-green-50 text-green-600 whitespace-nowrap"
+                          className="gap-1 whitespace-nowrap border-green-200 bg-green-50 text-green-600"
                         >
                           <CheckCircle size={12} /> Ativo
                         </Badge>
@@ -201,7 +206,7 @@ export default async function UsersPage({
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                       {dayjs(user.createdAt).format("DD/MM/YYYY")}
                     </TableCell>
                     <TableCell className="text-right">
@@ -241,49 +246,50 @@ export default async function UsersPage({
         </div>
       </div>
 
-      {totalPages > 1 && (
-        <div className="mt-4 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Página {page} de {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                asChild={page > 1}
-              >
-                {page > 1 ? (
-                  <Link
-                    href={`/dashboard/users?page=${page - 1}&q=${q}&applicationId=${filterApplicationId}&status=${filterStatus}`}
-                  >
-                    Anterior
-                  </Link>
-                ) : (
-                  <span>Anterior</span>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                asChild={page < totalPages}
-              >
-                {page < totalPages ? (
-                  <Link
-                    href={`/dashboard/users?page=${page + 1}&q=${q}&applicationId=${filterApplicationId}&status=${filterStatus}`}
-                  >
-                    Próximo
-                  </Link>
-                ) : (
-                  <span>Próximo</span>
-                )}
-              </Button>
-            </div>
-          </div>
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">
+            Página {currentPage} de {totalPages}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Mostrando {startItem}-{endItem} de {totalUsers} usuários
+          </p>
         </div>
-      )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage <= 1}
+            asChild={currentPage > 1}
+          >
+            {currentPage > 1 ? (
+              <Link
+                href={`/dashboard/users?page=${currentPage - 1}&q=${q}&applicationId=${filterApplicationId}&status=${filterStatus}`}
+              >
+                Anterior
+              </Link>
+            ) : (
+              <span>Anterior</span>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage >= totalPages}
+            asChild={currentPage < totalPages}
+          >
+            {currentPage < totalPages ? (
+              <Link
+                href={`/dashboard/users?page=${currentPage + 1}&q=${q}&applicationId=${filterApplicationId}&status=${filterStatus}`}
+              >
+                Próximo
+              </Link>
+            ) : (
+              <span>Próximo</span>
+            )}
+          </Button>
+        </div>
+      </div>
     </PageShell>
   );
 }
